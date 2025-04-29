@@ -3,9 +3,342 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bonjour</title>
+    <title>Mur Simulateur 3D (Placement Button Logic Check)</title>
+    <style>
+        /* Styles are identical to the previous version */
+        html, body { overscroll-behavior: none; margin: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; }
+        body { display: flex; flex-direction: column; background-color: #f0f0f0; }
+        #toolbar { background-color: #e9ecef; padding: 8px 5px; border-bottom: 1px solid #dee2e6; display: flex; gap: 4px; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; flex-shrink: 0; z-index: 10; }
+        #toolbar button, #toolbar select, #toolbar input { padding: 8px 8px; border: 1px solid #ced4da; background-color: #ffffff; color: #495057; cursor: pointer; border-radius: 5px; font-size: 13px; transition: background-color 0.2s ease, border-color 0.2s ease; height: 36px; box-sizing: border-box; flex-shrink: 0; }
+        #toolbar button.active { background-color: #007bff; color: white; border-color: #0056b3; font-weight: bold; }
+        #toolbar button:hover:not(.active) { background-color: #f1f3f5; border-color: #adb5bd; }
+        #toolbar label { font-size: 13px; margin-left: 3px; margin-right: 1px; color: #495057; white-space: nowrap; }
+        #toolbar input[type="number"] { width: 55px; cursor: text; }
+        #toolbar input[type="text"]#project-title-input { width: 120px; flex-grow: 1; max-width: 180px;}
+        #viewport-container { flex-grow: 1; position: relative; overflow: hidden; background-color: #cccccc; -webkit-tap-highlight-color: transparent; cursor: default; }
+        canvas { display: block; }
+        .info-text { font-size: 11px; color: #6c757d; padding: 0 5px; flex-basis: 100%; text-align: center; margin-top: 4px; order: 99; }
+        #element-select { min-width: 180px; max-width: 220px; }
+        #assise-select, #fraction-select { min-width: 90px; flex-grow: 1; max-width: 120px; }
+        .toolbar-group, .joint-group { display: flex; gap: 4px; align-items: center; border-left: 1px solid #ccc; padding-left: 6px; margin-left: 6px;}
+        .custom-dims-group, .custom-assise-group { display: flex; gap: 4px; align-items: center; margin-left: 6px; padding-left: 6px; border-left: 1px solid #ccc;}
+        .custom-dims-group input[type="number"] { width: 45px; }
+        .custom-dims-group input[type="text"] { width: 70px; }
+        .custom-dims-group label { margin-left: 0; }
+        .custom-assise-group input { width: 50px; }
+        .custom-assise-group button { padding: 8px; line-height: 1; }
+        .fraction-group { display: none; gap: 4px; align-items: center; }
+        .fraction-group.visible { display: flex; }
+        #btn-load-dims { margin-left: -2px; margin-right: 4px; padding: 8px; line-height: 1;}
+
+        /* Context Menu Styles */
+        #context-menu { position: absolute; display: none; background-color: white; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); border-radius: 4px; padding: 5px 0; z-index: 100; min-width: 150px; }
+        #context-menu ul { list-style: none; margin: 0; padding: 0; }
+        #context-menu li { padding: 8px 15px; cursor: pointer; font-size: 14px; }
+        #context-menu li:hover { background-color: #f0f0f0; }
+        #context-menu li.disabled { color: #aaa; cursor: not-allowed; background-color: transparent; }
+
+        /* Footer Info & Placer Button Styles */
+        #footer-controls { position: fixed; bottom: 5px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 5; pointer-events: none; }
+        #footer-info { font-size: 10px; color: #555; background-color: rgba(255, 255, 255, 0.7); padding: 2px 5px; border-radius: 3px; pointer-events: auto; }
+        #element-counter { font-size: 11px; color: #333; background-color: rgba(230, 230, 230, 0.8); padding: 3px 8px; border-radius: 3px; margin-left: auto; margin-right: 10px; pointer-events: auto; }
+        #btn-place-element { padding: 12px 20px; font-size: 18px; font-weight: bold; border: 1px solid #1a5a1a; background-color: #28a745; color: white; border-radius: 5px; cursor: pointer; box-shadow: 1px 1px 3px rgba(0,0,0,0.3); pointer-events: auto; display: none; opacity: 1; }
+        #btn-place-element:disabled { background-color: #a5d6a7; border-color: #81c784; cursor: not-allowed; opacity: 0.8; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <h1>Bonjour</h1>
+    <div id="toolbar">
+        <label for="project-title-input">Titre:</label>
+        <input type="text" id="project-title-input" value="Mon Projet Mur">
+        <button id="btn-export-pdf" title="Exporter en PDF">📄 PDF</button>
+        <span class="toolbar-separator" style="border-left: 1px solid #ccc; margin: 0 5px;"></span>
+
+        <button id="tool-add" title="Ajouter Élément Sélectionné">➕ Liste</button>
+        <button id="btn-rotate-element" title="Pivoter Élément (5°)">🔄</button>
+        <label for="element-select">Élément:</label>
+        <select id="element-select"></select>
+        <button id="btn-load-dims" title="Charger Dims dans Perso">📥</button>
+
+        <div id="fraction-group" class="fraction-group">
+             <label for="fraction-select">Fraction:</label>
+             <select id="fraction-select">
+                 <option value="1" selected>Entière (1/1)</option>
+                 <option value="0.75">3/4</option>
+                 <option value="0.5">1/2</option>
+                 <option value="0.25">1/4</option>
+             </select>
+        </div>
+
+        <div class="custom-dims-group">
+            <button id="tool-add-custom" title="Ajouter Élément Personnalisé">➕ Perso</button>
+            <label for="custom-name">Nom:</label> <input type="text" id="custom-name" value="Perso">
+            <label for="custom-width">L:</label> <input type="number" id="custom-width" value="20" step="1" min="1">
+            <label for="custom-depth">P:</label> <input type="number" id="custom-depth" value="10" step="1" min="1">
+            <label for="custom-height">H:</label> <input type="number" id="custom-height" value="10" step="1" min="1">
+        </div>
+
+        <div class="joint-group">
+            <label for="joint-horizontal">Joint H(Y):</label>
+            <input type="number" id="joint-horizontal" value="1.2" step="0.1" min="0" title="Joint Horizontal (affecte hauteur Y)">
+            <label for="joint-vertical">Joint V(X/Z):</label>
+            <input type="number" id="joint-vertical" value="1.2" step="0.1" min="0" title="Joint Vertical (affecte largeur X/Z)">
+        </div>
+
+
+        <label for="assise-select">Contrainte Assise:</label>
+        <select id="assise-select" title="Contrainte de hauteur de pose (base de l'élément)"></select>
+        <div class="custom-assise-group">
+            <input type="number" id="custom-assise-input" placeholder="cm" step="0.1" min="0">
+            <button id="btn-add-assise" title="Ajouter Assise Perso">+</button>
+        </div>
+
+        <div class="toolbar-group">
+             <button id="btn-orbit-left" title="Orbite Gauche">↺</button>
+             <button id="btn-orbit-right" title="Orbite Droite">↻</button>
+             <button id="btn-zoom-in" title="Zoom Avant">+</button>
+             <button id="btn-zoom-out" title="Zoom Arrière">-</button>
+             <button id="btn-rotate-scene" title="Rotation Auto Scène">🌍</button>
+             <button id="btn-toggle-color" title="Basculer Couleur/Blanc">🎨</button>
+        </div>
+        <span class="info-text">Mode: Navigation</span>
+    </div>
+    <div id="viewport-container">
+        <div id="context-menu">
+            <ul>
+                <li id="ctx-rotate">Rotation 90°</li>
+                <li id="ctx-modify">Charger Dims (Modifier)</li>
+                <li id="ctx-move" class="disabled">Déplacer (Non impl.)</li>
+                <li id="ctx-delete">Supprimer</li>
+            </ul>
+        </div>
+        <div id="footer-controls">
+            <div id="footer-info">Mur Simulateur 3D v0.0.1 par J.BROHEZ</div>
+            <div id="element-counter">Éléments: 0</div>
+            <button id="btn-place-element" disabled>Placer</button>
+        </div>
+    </div>
+
+    <script type="module">
+
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        const { jsPDF } = window.jspdf;
+
+        // --- DOM Elements (Unchanged) ---
+        const viewportContainer = document.getElementById('viewport-container');
+        const contextMenu = document.getElementById('context-menu');
+        const toolbar = document.getElementById('toolbar');
+        const projectTitleInput = document.getElementById('project-title-input');
+        const btnExportPDF = document.getElementById('btn-export-pdf');
+        const elementSelect = document.getElementById('element-select');
+        const btnLoadDims = document.getElementById('btn-load-dims');
+        const jointHorizontalInput = document.getElementById('joint-horizontal');
+        const jointVerticalInput = document.getElementById('joint-vertical');
+        const assiseSelect = document.getElementById('assise-select');
+        const customAssiseInput = document.getElementById('custom-assise-input');
+        const btnAddAssise = document.getElementById('btn-add-assise');
+        const fractionGroup = document.getElementById('fraction-group');
+        const fractionSelect = document.getElementById('fraction-select');
+        const infoText = document.querySelector('.info-text');
+        const addListButton = document.getElementById('tool-add');
+        const addCustomButton = document.getElementById('tool-add-custom');
+        const customNameInput = document.getElementById('custom-name');
+        const customWidthInput = document.getElementById('custom-width');
+        const customDepthInput = document.getElementById('custom-depth');
+        const customHeightInput = document.getElementById('custom-height');
+        const btnRotateElement = document.getElementById('btn-rotate-element');
+        const btnOrbitLeft = document.getElementById('btn-orbit-left');
+        const btnOrbitRight = document.getElementById('btn-orbit-right');
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        const btnRotateScene = document.getElementById('btn-rotate-scene');
+        const btnToggleColor = document.getElementById('btn-toggle-color');
+        const footerControls = document.getElementById('footer-controls');
+        const elementCounterElement = document.getElementById('element-counter');
+        const btnPlaceElement = document.getElementById('btn-place-element');
+
+        // --- Configuration (Unchanged) ---
+        const GRID_SIZE_CM = 1000;
+        const ROTATION_STEP_DEG = 5;
+        const CUSTOM_ELEMENT_COLOR = 0x0000FF;
+        const TARGET_BRICK_WIDTH = 19;
+        const TARGET_BLOCK_WIDTH = 39;
+        // const ASSISE_TOLERANCE = 0.1; // Removed
+        const LONG_PRESS_DURATION = 500;
+        const LONG_PRESS_MOVE_THRESHOLD = 5;
+
+        // --- Element Type Definitions (Unchanged - Y-up) ---
+        const elementTypes = { /* ... same as before ... */
+             "M50": { name: "Brique M50", dim: [19, 9, 5], color: 0xCC6633, isCourseElement: true }, "M57": { name: "Brique M57", dim: [19, 9, 5.7], color: 0xCC6633, isCourseElement: true }, "M65": { name: "Brique M65", dim: [19, 9, 6.5], color: 0xCC6633, isCourseElement: true }, "M90": { name: "Brique M90", dim: [19, 9, 9], color: 0xCC6633, isCourseElement: true }, "WF": { name: "Brique WF", dim: [21, 9, 9], color: 0xD27D2D, isCourseElement: true }, "WFD": { name: "Brique WFD", dim: [21, 9, 9], color: 0xD27D2D, isCourseElement: true }, "M50c": { name: "M50 champ", dim: [9, 19, 5], color: 0xB85A2D }, "M57c": { name: "M57 champ", dim: [9, 19, 5.7], color: 0xB85A2D }, "M65c": { name: "M65 champ", dim: [9, 19, 6.5], color: 0xB85A2D }, "M90c": { name: "M90 champ", dim: [9, 21, 9], color: 0xB85A2D }, "WFc": { name: "WF champ", dim: [9, 21, 9], color: 0xC06C2A }, "WFDc": { name: "WFD champ", dim: [9, 21, 9], color: 0xC06C2A }, "B9": { name: "Bloc 9", dim: [39, 9, 19], color: 0xAAAAAA, isCourseElement: true }, "B14": { name: "Bloc 14", dim: [39, 14, 19], color: 0xAAAAAA, isCourseElement: true }, "B19": { name: "Bloc 19", dim: [39, 19, 19], color: 0xAAAAAA, isCourseElement: true }, "B29": { name: "Bloc 29", dim: [39, 29, 19], color: 0xAAAAAA, isCourseElement: true }, "V1": { name: "Vide 1cm", dim: [40, 19, 1], color: 0xDDDDDD }, "V2": { name: "Vide 2cm", dim: [40, 19, 2], color: 0xDDDDDD }, "V3": { name: "Vide 3cm", dim: [40, 19, 3], color: 0xDDDDDD }, "V4": { name: "Vide 4cm", dim: [40, 19, 4], color: 0xDDDDDD }, "V5": { name: "Vide 5cm", dim: [40, 19, 5], color: 0xDDDDDD }, "L120_14": { name: "Lint 120x14", dim: [120, 14, 19], color: 0x888888, isCourseElement: true }, "L140_14": { name: "Lint 140x14", dim: [140, 14, 19], color: 0x888888, isCourseElement: true }, "L160_14": { name: "Lint 160x14", dim: [160, 14, 19], color: 0x888888, isCourseElement: true }, "L180_14": { name: "Lint 180x14", dim: [180, 14, 19], color: 0x888888, isCourseElement: true }, "L200_14": { name: "Lint 200x14", dim: [200, 14, 19], color: 0x888888, isCourseElement: true }, "L220_14": { name: "Lint 220x14", dim: [220, 14, 19], color: 0x888888, isCourseElement: true }, "L240_14": { name: "Lint 240x14", dim: [240, 14, 19], color: 0x888888, isCourseElement: true }, "L260_14": { name: "Lint 260x14", dim: [260, 14, 19], color: 0x888888, isCourseElement: true }, "L280_14": { name: "Lint 280x14", dim: [280, 14, 19], color: 0x888888, isCourseElement: true }, "L300_14": { name: "Lint 300x14", dim: [300, 14, 19], color: 0x888888, isCourseElement: true },
+             "L100_9": { name: "Lint 100x9", dim: [100, 9, 19], color: 0x888888, isCourseElement: true }, "L120_9": { name: "Lint 120x9", dim: [120, 9, 19], color: 0x888888, isCourseElement: true }, "L160_9": { name: "Lint 160x9", dim: [160, 9, 19], color: 0x888888, isCourseElement: true }, "L180_9": { name: "Lint 180x9", dim: [180, 9, 19], color: 0x888888, isCourseElement: true }, "L200_9": { name: "Lint 200x9", dim: [200, 9, 19], color: 0x888888, isCourseElement: true }, "L220_9": { name: "Lint 220x9", dim: [220, 9, 19], color: 0x888888, isCourseElement: true }, "L240_9": { name: "Lint 240x9", dim: [240, 9, 19], color: 0x888888, isCourseElement: true }, "L260_9": { name: "Lint 260x9", dim: [260, 9, 19], color: 0x888888, isCourseElement: true }, "L280_9": { name: "Lint 280x9", dim: [280, 9, 19], color: 0x888888, isCourseElement: true }, "L300_9": { name: "Lint 300x9", dim: [300, 9, 19], color: 0x888888, isCourseElement: true },
+             "L100_19": { name: "Lint 100x19", dim: [100, 19, 19], color: 0x888888, isCourseElement: true }, "L120_19": { name: "Lint 120x19", dim: [120, 19, 19], color: 0x888888, isCourseElement: true }, "L160_19": { name: "Lint 160x19", dim: [160, 19, 19], color: 0x888888, isCourseElement: true }, "L180_19": { name: "Lint 180x19", dim: [180, 19, 19], color: 0x888888, isCourseElement: true }, "L200_19": { name: "Lint 200x19", dim: [200, 19, 19], color: 0x888888, isCourseElement: true }, "L220_19": { name: "Lint 220x19", dim: [220, 19, 19], color: 0x888888, isCourseElement: true }, "L240_19": { name: "Lint 240x19", dim: [240, 19, 19], color: 0x888888, isCourseElement: true }, "L260_19": { name: "Lint 260x19", dim: [260, 19, 19], color: 0x888888, isCourseElement: true }, "L280_19": { name: "Lint 280x19", dim: [280, 19, 19], color: 0x888888, isCourseElement: true }, "L300_19": { name: "Lint 300x19", dim: [300, 19, 19], color: 0x888888, isCourseElement: true },
+             "BCA60_9": { name: "BC Ass 60x9", dim: [60, 9, 20], color: 0xE0E0E0, isCourseElement: true }, "BCA60_14": { name: "BC Ass 60x14", dim: [60, 14, 20], color: 0xE0E0E0, isCourseElement: true }, "BCA60_19": { name: "BC Ass 60x19", dim: [60, 19, 20], color: 0xE0E0E0, isCourseElement: true }, "BC60_10": { name: "BC 60x10", dim: [60, 10, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_15": { name: "BC 60x15", dim: [60, 15, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_20": { name: "BC 60x20", dim: [60, 20, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_24": { name: "BC 60x24", dim: [60, 24, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_30": { name: "BC 60x30", dim: [60, 30, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_36": { name: "BC 60x36.5", dim: [60, 36.5, 25], color: 0xF0F0F0, isCourseElement: true },
+             "PUR5": { name: "PUR 5cm", dim: [120, 60, 5], color: 0xFFEC8B }, "PUR6": { name: "PUR 6cm", dim: [120, 60, 6], color: 0xFFEC8B }, "PUR7": { name: "PUR 7cm", dim: [120, 60, 7], color: 0xFFEC8B }, "PUR8": { name: "PUR 8cm", dim: [120, 60, 8], color: 0xFFEC8B }, "PUR9": { name: "PUR 9cm", dim: [120, 60, 9], color: 0xFFEC8B }, "PUR10": { name: "PUR 10cm", dim: [120, 60, 10], color: 0xFFEC8B }, "PUR11": { name: "PUR 11cm", dim: [120, 60, 11], color: 0xFFEC8B }, "PUR12": { name: "PUR 12cm", dim: [120, 60, 12], color: 0xFFEC8B }, "PUR13": { name: "PUR 13cm", dim: [120, 60, 13], color: 0xFFEC8B }, "PUR14": { name: "PUR 14cm", dim: [120, 60, 14], color: 0xFFEC8B }, "PUR15": { name: "PUR 15cm", dim: [120, 60, 15], color: 0xFFEC8B }, "PUR16": { name: "PUR 16cm", dim: [120, 60, 16], color: 0xFFEC8B }, "PUR18": { name: "PUR 18cm", dim: [120, 60, 18], color: 0xFFEC8B },
+             "PROFIL": { name: "Profil", dim: [250, 6.5, 6.5], color: 0xC0C0C0 }
+        };
+        const CUSTOM_ELEMENT_ID = 'custom';
+        const WHITE_COLOR = 0xFFFFFF;
+
+        // --- State (Unchanged) ---
+        let currentTool = 'navigate';
+        let selectedElementTypeId = Object.keys(elementTypes)[0];
+        let selectedFraction = '1';
+        let jointThicknessY = parseFloat(jointHorizontalInput.value) || 1.2;
+        let jointThicknessX = parseFloat(jointVerticalInput.value) || 1.2;
+        let selectedAssiseConstraint = null;
+        const customAssiseValues = new Set();
+        let placedElements = [];
+        let nextElementId = 0;
+        let isSceneRotating = false;
+        let ghostElementRotationY = 0;
+        let lastPointerEvent = null;
+        let longPressTimer = null;
+        let pointerDownStartPos = { x: 0, y: 0 };
+        let didLongPress = false;
+        let contextMenuTarget = null;
+        let colorMode = 'color';
+
+        // --- Three.js Setup (Unchanged) ---
+        let scene, camera, renderer, controls, raycaster, pointer, axesHelper;
+        let groundPlane, ghostElement;
+        const objectsToRaycast = [];
+        const clock = new THREE.Clock();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            const aspect = viewportContainer.clientWidth / viewportContainer.clientHeight;
+            camera = new THREE.PerspectiveCamera(60, aspect, 1, 5000);
+            camera.position.set(20, 25, 32.5); camera.up.set(0, 1, 0); camera.lookAt(0, 5, 0);
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            viewportContainer.appendChild(renderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; controls.dampingFactor = 0.1; controls.target.set(0, 5, 0);
+            controls.minDistance = 2; controls.maxDistance = 1500;
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            directionalLight.position.set(150, 300, 200); directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048; directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 50; directionalLight.shadow.camera.far = 1000;
+            const shadowCamSize = GRID_SIZE_CM / 1.5;
+            directionalLight.shadow.camera.left = -shadowCamSize; directionalLight.shadow.camera.right = shadowCamSize;
+            directionalLight.shadow.camera.top = shadowCamSize; directionalLight.shadow.camera.bottom = -shadowCamSize;
+            directionalLight.shadow.camera.updateProjectionMatrix(); scene.add(directionalLight);
+            const planeGeometry = new THREE.PlaneGeometry(GRID_SIZE_CM * 2, GRID_SIZE_CM * 2);
+            const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xDCFCE7, side: THREE.DoubleSide });
+            groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.y = -0.1;
+            groundPlane.receiveShadow = true; groundPlane.userData.isGround = true;
+            scene.add(groundPlane); objectsToRaycast.push(groundPlane);
+            axesHelper = new THREE.AxesHelper(50); axesHelper.position.set(0, 0.1, 0); scene.add(axesHelper);
+            raycaster = new THREE.Raycaster(); pointer = new THREE.Vector2();
+            const ghostMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00, opacity: 0.6, transparent: true, depthWrite: false });
+            ghostElement = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ghostMaterial);
+            ghostElement.visible = false; ghostElement.castShadow = false; scene.add(ghostElement);
+            populateElementSelector();
+            populateAssiseSelector();
+            updateInfoText();
+            updateElementCounter();
+            window.addEventListener('resize', onWindowResize);
+            viewportContainer.addEventListener('pointerdown', onPointerDown);
+            viewportContainer.addEventListener('pointermove', onPointerMove);
+            viewportContainer.addEventListener('pointerup', onPointerUp);
+            viewportContainer.addEventListener('pointerleave', onPointerLeave);
+            toolbar.addEventListener('click', handleToolButtonClick);
+            elementSelect.addEventListener('change', handleElementSelectChange);
+            fractionSelect.addEventListener('change', handleFractionChange);
+            jointHorizontalInput.addEventListener('change', handleJointThicknessChange);
+            jointVerticalInput.addEventListener('change', handleJointThicknessChange);
+            assiseSelect.addEventListener('change', handleAssiseChange);
+            btnPlaceElement.addEventListener('click', placeElementFromButton); // Connect button
+            customWidthInput.addEventListener('change', () => { if(currentTool === 'add-custom') updateGhostElement(null, true); });
+            customHeightInput.addEventListener('change', () => { if(currentTool === 'add-custom') updateGhostElement(null, true); });
+            customDepthInput.addEventListener('change', () => { if(currentTool === 'add-custom') updateGhostElement(null, true); });
+            contextMenu.addEventListener('click', onContextMenuClick);
+            document.addEventListener('click', (event) => { if (!contextMenu.contains(event.target)) { hideContextMenu(); } });
+            controls.update();
+            animate();
+        }
+
+        // --- Populate Element Dropdown (Unchanged) ---
+        function populateElementSelector() { /* ... */ elementSelect.innerHTML = ''; for (const id in elementTypes) { const type = elementTypes[id]; const option = document.createElement('option'); option.value = id; option.textContent = `${type.name} (${type.dim[0]}x${type.dim[1]}x${type.dim[2]})`; elementSelect.appendChild(option); } elementSelect.value = selectedElementTypeId; }
+
+        // --- Populate Assise Selector (Unchanged) ---
+        function populateAssiseSelector() { /* ... */ const currentSelectedValue = assiseSelect.value; assiseSelect.innerHTML = ''; const freeOption = document.createElement('option'); freeOption.value = 'null'; freeOption.textContent = 'Libre'; assiseSelect.appendChild(freeOption); const calculatedAssises = new Map(); for (const id in elementTypes) { const type = elementTypes[id]; if (type.isCourseElement && type.dim && type.dim.length === 3) { const elementHeight = type.dim[2]; const assiseHeight = elementHeight + jointThicknessY; const roundedHeight = Math.round(assiseHeight * 100) / 100; if (!calculatedAssises.has(roundedHeight)) { calculatedAssises.set(roundedHeight, []); } calculatedAssises.get(roundedHeight).push(type.name.split(" ")[0]); } } const allHeights = new Set([...calculatedAssises.keys(), ...customAssiseValues]); const sortedHeights = Array.from(allHeights).sort((a, b) => a - b); sortedHeights.forEach(height => { const option = document.createElement('option'); option.value = height; const elementNames = calculatedAssises.has(height) ? Array.from(new Set(calculatedAssises.get(height))).slice(0, 2).join(', ') : "Perso"; option.textContent = `${height.toFixed(1)} cm (${elementNames})`; assiseSelect.appendChild(option); }); if (assiseSelect.querySelector(`option[value="${currentSelectedValue}"]`)) { assiseSelect.value = currentSelectedValue; } else { assiseSelect.value = 'null'; selectedAssiseConstraint = null; } }
+
+        // --- Snapping Logic (Unchanged) ---
+        function snapToGroundGrid(value, dimension, jointX) { /* ... */ const moduleSize = dimension + jointX; if (moduleSize <= 0) return value; const snappedStart = Math.round(value / moduleSize) * moduleSize; return snappedStart; }
+        function snapHeight(value, jointY) { /* ... */ const snapIncrement = Math.max(1, jointY); return Math.round(value / snapIncrement) * snapIncrement; }
+
+        // --- Get Current Element Dimensions (Unchanged) ---
+        function getCurrentElementDimensions() { /* ... */ let widthCm = 10, depthCm = 10, heightCm = 10; if (currentTool === 'add-custom') { widthCm = parseFloat(customWidthInput.value) || 10; depthCm = parseFloat(customDepthInput.value) || 10; heightCm = parseFloat(customHeightInput.value) || 10; } else if (currentTool === 'add-list') { const type = elementTypes[selectedElementTypeId]; if (type && type.dim) { [widthCm, depthCm, heightCm] = type.dim; if (widthCm === TARGET_BRICK_WIDTH) { switch (selectedFraction) { case '0.75': widthCm = 14; break; case '0.5': widthCm = 9; break; case '0.25': widthCm = 4; break; } } else if (widthCm === TARGET_BLOCK_WIDTH) { switch (selectedFraction) { case '0.75': widthCm = 27; break; case '0.5': widthCm = 19; break; case '0.25': widthCm = 9; break; } } } } return [widthCm, depthCm, heightCm]; }
+
+        // --- Raycasting and Ghost Logic (Snap-to-Assise - Unchanged) ---
+        function updateGhostElement(event, forceUpdate = false) { /* ... */ if (event) { lastPointerEvent = event; } else if (lastPointerEvent && forceUpdate) { event = lastPointerEvent; } else { if (currentTool === 'add-list' || currentTool === 'add-custom') ghostElement.visible = false; updatePlaceButtonState(); return; } if (currentTool !== 'add-list' && currentTool !== 'add-custom') { ghostElement.visible = false; updatePlaceButtonState(); return; } const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const intersects = raycaster.intersectObjects(objectsToRaycast, false); let showGhost = false; if (intersects.length > 0) { const intersection = intersects[0]; const point = intersection.point; const face = intersection.face; const object = intersection.object; const [widthCm, depthCm, heightCm] = getCurrentElementDimensions(); const boxWidth = widthCm; const boxHeight = heightCm; const boxDepth = depthCm; let snappedY; if (selectedAssiseConstraint !== null) { snappedY = Math.round(point.y / selectedAssiseConstraint) * selectedAssiseConstraint; snappedY = Math.max(0, snappedY); showGhost = true; } else { let freeBaseY = 0; if (object && !object.userData.isGround && object.geometry.parameters) { freeBaseY = object.position.y + object.geometry.parameters.height / 2; } if (object && !object.userData.isGround) { freeBaseY += jointThicknessY; } snappedY = snapHeight(freeBaseY, jointThicknessY); showGhost = true; } if (showGhost) { const normalOffset = face.normal.clone().multiplyScalar(0.1); const targetPoint = point.clone().add(normalOffset); let snappedX = snapToGroundGrid(targetPoint.x, boxWidth, jointThicknessX); let snappedZ = snapToGroundGrid(targetPoint.z, boxDepth, jointThicknessX); const geomParams = ghostElement.geometry.parameters; if (!geomParams || geomParams.width !== boxWidth || geomParams.height !== boxHeight || geomParams.depth !== boxDepth) { ghostElement.geometry.dispose(); ghostElement.geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth); } ghostElement.position.set(snappedX + boxWidth / 2, snappedY + boxHeight / 2, snappedZ + boxDepth / 2); ghostElement.rotation.y = ghostElementRotationY; } } ghostElement.visible = showGhost; updatePlaceButtonState(); }
+
+        // --- Add Element Logic (Unchanged) ---
+        function addElement() { /* ... */ if (!ghostElement.visible) return; const [widthCm, depthCm, heightCm] = getCurrentElementDimensions(); const boxWidth = widthCm; const boxHeight = heightCm; const boxDepth = depthCm; const type = (currentTool === 'add-custom') ? null : elementTypes[selectedElementTypeId]; const originalColor = (currentTool === 'add-custom') ? CUSTOM_ELEMENT_COLOR : (type?.color ?? 0xcccccc); const displayColor = (colorMode === 'white') ? WHITE_COLOR : originalColor; const currentTypeId = (currentTool === 'add-custom') ? CUSTOM_ELEMENT_ID : selectedElementTypeId; const customName = (currentTool === 'add-custom') ? customNameInput.value.trim() || "Perso" : null; const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth); const material = new THREE.MeshStandardMaterial({ color: displayColor, roughness: 0.8, metalness: 0.1 }); const newMesh = new THREE.Mesh(geometry, material); newMesh.position.copy(ghostElement.position); newMesh.rotation.y = ghostElementRotationY; newMesh.castShadow = true; newMesh.receiveShadow = true; scene.add(newMesh); const edgesGeometry = new THREE.EdgesGeometry(geometry); const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x000000, depthTest: true }); const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial); edges.position.copy(newMesh.position); edges.rotation.y = ghostElementRotationY; scene.add(edges); const elementData = { id: nextElementId++, typeId: currentTypeId, mesh: newMesh, edges: edges, customName: customName, originalColor: originalColor }; placedElements.push(elementData); objectsToRaycast.push(newMesh); updateElementCounter(); }
+
+        // --- Place Element from Button (Unchanged) ---
+        function placeElementFromButton() { if (currentTool === 'add-list' || currentTool === 'add-custom') { addElement(); } }
+
+        // --- Update Place Button State (Unchanged) ---
+        function updatePlaceButtonState() { const showButton = (currentTool === 'add-list' || currentTool === 'add-custom'); btnPlaceElement.style.display = showButton ? 'block' : 'none'; btnPlaceElement.disabled = !ghostElement.visible; }
+
+        // --- Update Element Counter (Unchanged) ---
+        function updateElementCounter() { elementCounterElement.textContent = `Éléments: ${placedElements.length}`; }
+
+        // --- Event Handlers ---
+        function onWindowResize() { /* ... */ camera.aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight); }
+        function onPointerMove(event) { /* ... */ if (longPressTimer) { const currentPos = { x: event.clientX, y: event.clientY }; const dx = Math.abs(currentPos.x - pointerDownStartPos.x); const dy = Math.abs(currentPos.y - pointerDownStartPos.y); if (dx > LONG_PRESS_MOVE_THRESHOLD || dy > LONG_PRESS_MOVE_THRESHOLD) { clearTimeout(longPressTimer); longPressTimer = null; } } if (currentTool === 'add-list' || currentTool === 'add-custom') { updateGhostElement(event); } else { ghostElement.visible = false; lastPointerEvent = null; updatePlaceButtonState();} }
+        function onPointerDown(event) { /* ... */ if (event.button !== 0 && event.pointerType === 'mouse') return; didLongPress = false; pointerDownStartPos = { x: event.clientX, y: event.clientY }; clearTimeout(longPressTimer); longPressTimer = setTimeout(() => { handleLongPress(event); longPressTimer = null; }, LONG_PRESS_DURATION); }
+        function onPointerUp(event) { /* ... */ clearTimeout(longPressTimer); longPressTimer = null; didLongPress = false; } // Click no longer adds directly
+        function onPointerLeave(event) { /* ... */ clearTimeout(longPressTimer); longPressTimer = null; }
+        function handleLongPress(event) { /* ... */ didLongPress = true; hideContextMenu(); const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const elementMeshes = placedElements.map(el => el.mesh); const intersects = raycaster.intersectObjects(elementMeshes, false); if (intersects.length > 0) { const intersectedMesh = intersects[0].object; const targetElementData = placedElements.find(el => el.mesh === intersectedMesh); if (targetElementData) { contextMenuTarget = targetElementData; showContextMenu(event.clientX, event.clientY); } } }
+        function showContextMenu(x, y) { /* ... */ const rect = viewportContainer.getBoundingClientRect(); contextMenu.style.left = `${x - rect.left}px`; contextMenu.style.top = `${y - rect.top}px`; contextMenu.style.display = 'block'; }
+        function hideContextMenu() { /* ... */ contextMenu.style.display = 'none'; contextMenuTarget = null; }
+        function onContextMenuClick(event) { /* ... */ if (!contextMenuTarget) return; const action = event.target.id; const targetData = contextMenuTarget; switch (action) { case 'ctx-rotate': rotatePlacedElement(targetData, Math.PI / 2); break; case 'ctx-modify': modifyPlacedElement(targetData); break; case 'ctx-move': alert("Fonctionnalité 'Déplacer' non implémentée."); break; case 'ctx-delete': deletePlacedElement(targetData); break; } hideContextMenu(); }
+        function deletePlacedElement(elementData) { /* ... */ if (!elementData) return; scene.remove(elementData.mesh); if (elementData.edges) scene.remove(elementData.edges); elementData.mesh.geometry.dispose(); elementData.mesh.material.dispose(); if (elementData.edges) { elementData.edges.geometry.dispose(); elementData.edges.material.dispose(); } placedElements = placedElements.filter(el => el.id !== elementData.id); const index = objectsToRaycast.indexOf(elementData.mesh); if (index > -1) { objectsToRaycast.splice(index, 1); } updateElementCounter(); }
+        function modifyPlacedElement(elementData) { /* ... */ if (!elementData) return; const mesh = elementData.mesh; const params = mesh.geometry.parameters; customWidthInput.value = params.width; customHeightInput.value = params.height; customDepthInput.value = params.depth; customNameInput.value = elementData.customName || elementData.typeId; deletePlacedElement(elementData); if (currentTool !== 'add-custom') { handleToolButtonClick({ target: addCustomButton }); } else { updateGhostElement(null, true); } alert(`Dimensions chargées. L'élément original a été supprimé. Modifiez si nécessaire et cliquez sur 'Placer'.`); }
+        function rotatePlacedElement(elementData, angleRad) { /* ... */ if (!elementData) return; elementData.mesh.rotation.y += angleRad; if (elementData.edges) { elementData.edges.rotation.y = elementData.mesh.rotation.y; } }
+        function handleToolButtonClick(event) { /* ... */ const button = event.target.closest('button'); if (!button || !button.id) return; const toolId = button.id; let needsInfoUpdate = true; let needsPlaceButtonUpdate = false; if (toolId === 'tool-add' || toolId === 'tool-add-custom') { addListButton.classList.remove('active'); addCustomButton.classList.remove('active'); fractionGroup.classList.remove('visible'); needsPlaceButtonUpdate = true; } switch (toolId) { case 'tool-add': if (currentTool === 'add-list') { currentTool = 'navigate'; controls.enabled = true; ghostElement.visible = false; lastPointerEvent = null; } else { currentTool = 'add-list'; button.classList.add('active'); controls.enabled = false; ghostElementRotationY = 0; updateFractionSelectorVisibility(); updateGhostElement(null, true); } break; case 'tool-add-custom': if (currentTool === 'add-custom') { currentTool = 'navigate'; controls.enabled = true; ghostElement.visible = false; lastPointerEvent = null; } else { currentTool = 'add-custom'; button.classList.add('active'); controls.enabled = false; ghostElementRotationY = 0; updateFractionSelectorVisibility(); updateGhostElement(null, true); } break; case 'btn-export-pdf': exportToPDF(); needsInfoUpdate = false; break; case 'btn-load-dims': loadSelectedDims(); needsInfoUpdate = false; break; case 'btn-rotate-element': if (currentTool === 'add-list' || currentTool === 'add-custom') { rotateGhostElement(); } needsInfoUpdate = false; break; case 'btn-add-assise': addCustomAssise(); needsInfoUpdate = false; break; case 'btn-toggle-color': toggleColorMode(button); needsInfoUpdate = false; break; case 'btn-orbit-left': rotateView(0.1); needsInfoUpdate = false; break; case 'btn-orbit-right': rotateView(-0.1); needsInfoUpdate = false; break; case 'btn-zoom-in': zoomView(0.8); needsInfoUpdate = false; break; case 'btn-zoom-out': zoomView(1.2); needsInfoUpdate = false; break; case 'btn-rotate-scene': toggleSceneRotation(button); needsInfoUpdate = false; break; default: needsInfoUpdate = false; break; } if(needsInfoUpdate) updateInfoText(); if(needsPlaceButtonUpdate) updatePlaceButtonState(); }
+        function updateFractionSelectorVisibility() { /* ... */ const type = elementTypes[selectedElementTypeId]; const showFractions = currentTool === 'add-list' && type && type.dim && (type.dim[0] === TARGET_BRICK_WIDTH || type.dim[0] === TARGET_BLOCK_WIDTH); fractionGroup.classList.toggle('visible', showFractions); if (showFractions) { fractionSelect.value = selectedFraction; } }
+        function handleElementSelectChange(event) { /* ... */ selectedElementTypeId = event.target.value; ghostElementRotationY = 0; selectedFraction = '1'; fractionSelect.value = '1'; updateFractionSelectorVisibility(); if (currentTool === 'add-list') { updateGhostElement(null, true); } updateInfoText(); }
+        function handleFractionChange(event) { /* ... */ selectedFraction = event.target.value; if (currentTool === 'add-list') { updateGhostElement(null, true); } }
+        function handleJointThicknessChange(event) { /* ... */ const isHorizontal = event.target.id === 'joint-horizontal'; const value = parseFloat(event.target.value); if (!isNaN(value) && value >= 0) { if (isHorizontal) { jointThicknessY = value; populateAssiseSelector(); } else { jointThicknessX = value; } if (currentTool === 'add-list' || currentTool === 'add-custom') { updateGhostElement(null, true); } } else { event.target.value = isHorizontal ? jointThicknessY : jointThicknessX; } }
+        function handleAssiseChange(event) { /* ... */ const value = event.target.value; if (value === 'null') { selectedAssiseConstraint = null; } else { selectedAssiseConstraint = parseFloat(value); if (isNaN(selectedAssiseConstraint)) { selectedAssiseConstraint = null; } } if (currentTool === 'add-list' || currentTool === 'add-custom') { updateGhostElement(null, true); } }
+        function updateInfoText() { /* ... */ let modeText = "Navigation"; let rotationText = ""; if (currentTool === 'add-list' || currentTool === 'add-custom') { const rotationDeg = Math.round(THREE.MathUtils.radToDeg(ghostElementRotationY)) % 360; rotationText = ` / Rot: ${rotationDeg}°`; if (currentTool === 'add-list') { const selectedName = elementTypes[selectedElementTypeId]?.name ?? 'Inconnu'; const shortName = selectedName.split(" ")[0]; modeText = `Ajouter Liste (${shortName})`; } else if (currentTool === 'add-custom') { modeText = "Ajouter Perso"; } } infoText.textContent = `Mode: ${modeText}${rotationText}`; }
+        function addCustomAssise() { /* ... */ const value = parseFloat(customAssiseInput.value); if (!isNaN(value) && value > 0) { const roundedValue = Math.round(value * 100) / 100; customAssiseValues.add(roundedValue); populateAssiseSelector(); customAssiseInput.value = ''; assiseSelect.value = roundedValue; handleAssiseChange({ target: assiseSelect }); } else { alert("Veuillez entrer une valeur d'assise numérique positive."); } }
+        function loadSelectedDims() { /* ... */ const type = elementTypes[selectedElementTypeId]; if (type && type.dim) { const [widthCm, depthCm, heightCm] = type.dim; customWidthInput.value = widthCm; customDepthInput.value = depthCm; customHeightInput.value = heightCm; customNameInput.value = type.name; alert(`Dimensions de "${type.name}" chargées dans la section perso.`); } }
+        function toggleColorMode(button) { /* ... */ colorMode = (colorMode === 'color') ? 'white' : 'color'; if (button) { button.classList.toggle('active', colorMode === 'white'); } placedElements.forEach(el => { const displayColor = (colorMode === 'white') ? WHITE_COLOR : el.originalColor; el.mesh.material.color.setHex(displayColor); }); console.log("Color mode:", colorMode); }
+
+        // --- PDF Export Function (Unchanged) ---
+        async function exportToPDF() { /* ... */ if (!window.jspdf) { alert("La bibliothèque jsPDF n'est pas chargée."); return; } const { jsPDF } = window.jspdf; const projectTitle = projectTitleInput.value.trim() || "Simulation Mur 3D"; const filename = `${projectTitle}.pdf`; alert(`Début de l'exportation PDF : ${filename}\nCela peut prendre quelques instants...`); const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pageW = doc.internal.pageSize.getWidth(); const pageH = doc.internal.pageSize.getHeight(); const margin = 10; const imgW = pageW - 2 * margin; const imgH = pageH - 2 * margin - 15; const addViewToPDF = (viewName, cameraInstance) => { console.log(`Rendering view: ${viewName}`); axesHelper.visible = false; const originalBackground = scene.background; scene.background = new THREE.Color(0xffffff); renderer.render(scene, cameraInstance); scene.background = originalBackground; axesHelper.visible = true; const imgData = renderer.domElement.toDataURL('image/png'); doc.addPage(); doc.setFontSize(12); doc.text(viewName, margin, margin + 5); const canvasAspect = renderer.domElement.width / renderer.domElement.height; const imgAspect = imgW / imgH; let drawW, drawH; if (canvasAspect > imgAspect) { drawW = imgW; drawH = imgW / canvasAspect; } else { drawH = imgH; drawW = imgH * canvasAspect; } const drawX = margin + (imgW - drawW) / 2; const drawY = margin + 15 + (imgH - drawH) / 2; doc.addImage(imgData, 'PNG', drawX, drawY, drawW, drawH); }; const box = new THREE.Box3(); if (placedElements.length > 0) { placedElements.forEach(el => box.expandByObject(el.mesh)); } else { box.setFromCenterAndSize(new THREE.Vector3(0, 50, 0), new THREE.Vector3(100, 100, 100)); } const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const maxDim = Math.max(size.x, size.y, size.z); const camDist = maxDim * 1.5; const orthoSize = maxDim / 2 * 1.1; const aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; const orthoCam = new THREE.OrthographicCamera(-orthoSize * aspect, orthoSize * aspect, orthoSize, -orthoSize, 0.1, camDist * 2); orthoCam.position.set(center.x, center.y + camDist, center.z); orthoCam.lookAt(center); orthoCam.up.set(0, 0, -1); addViewToPDF("Vue de Dessus (X-Z)", orthoCam); orthoCam.position.set(center.x, center.y, center.z + camDist); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue de Face (X-Y)", orthoCam); orthoCam.position.set(center.x - camDist, center.y, center.z); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue de Gauche (Z-Y)", orthoCam); orthoCam.position.set(center.x + camDist, center.y, center.z); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue de Droite (-Z-Y)", orthoCam); orthoCam.position.set(center.x, center.y, center.z - camDist); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue Arrière (-X-Y)", orthoCam); console.log("Rendering view: 3D Perspective"); axesHelper.visible = false; const originalBackground = scene.background; scene.background = new THREE.Color(0xffffff); renderer.render(scene, camera); scene.background = originalBackground; axesHelper.visible = true; const imgData3D = renderer.domElement.toDataURL('image/png'); doc.addPage(); doc.setFontSize(12); doc.text("Vue 3D Perspective", margin, margin + 5); const canvasAspect3D = renderer.domElement.width / renderer.domElement.height; const imgAspect3D = imgW / imgH; let drawW3D, drawH3D; if (canvasAspect3D > imgAspect3D) { drawW3D = imgW; drawH3D = imgW / canvasAspect3D; } else { drawH3D = imgH; drawW3D = imgH * canvasAspect3D; } const drawX3D = margin + (imgW - drawW3D) / 2; const drawY3D = margin + 15 + (imgH - drawH3D) / 2; doc.addImage(imgData3D, 'PNG', drawX3D, drawY3D, drawW3D, drawH3D); if (doc.internal.pages.length > 1) { doc.deletePage(1); } doc.save(filename); alert(`PDF "${filename}" généré.`); }
+
+        // --- Navigation & Rotation Functions (Unchanged) ---
+        function rotateView(angle) { /* ... */ if (!controls) return; const target = controls.target; const offset = camera.position.clone().sub(target); const quaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle); offset.applyQuaternion(quaternion); camera.position.copy(target).add(offset); camera.lookAt(target); controls.update(); }
+        function zoomView(factor) { /* ... */ if (!controls) return; if (factor < 1) { controls.dollyIn(1 / factor); } else { controls.dollyOut(factor); } controls.update(); }
+        function toggleSceneRotation(button) { /* ... */ isSceneRotating = !isSceneRotating; if (button) { button.classList.toggle('active', isSceneRotating); } controls.autoRotate = isSceneRotating; if (isSceneRotating) { controls.autoRotateSpeed = 0.5; } if (!isSceneRotating) { controls.update(); } }
+        function rotateGhostElement() { /* ... */ if (currentTool !== 'add-list' && currentTool !== 'add-custom' || !ghostElement.visible) return; ghostElementRotationY += THREE.MathUtils.degToRad(ROTATION_STEP_DEG); ghostElement.rotation.y = ghostElementRotationY; updateInfoText(); }
+
+        // --- Animation Loop (Unchanged) ---
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+
+        // --- Init ---
+        init();
+
+    </script>
 </body>
 </html>
