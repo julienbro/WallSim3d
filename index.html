@@ -3,47 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mur Simulateur 3D (Placement Button Logic Check)</title>
+    <title>Mur Simulateur 3D (Nettoyé)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        /* Styles are identical to the previous version */
-        html, body { overscroll-behavior: none; margin: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; }
-        body { display: flex; flex-direction: column; background-color: #f0f0f0; }
-        #toolbar { background-color: #e9ecef; padding: 8px 5px; border-bottom: 1px solid #dee2e6; display: flex; gap: 4px; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; flex-shrink: 0; z-index: 10; }
-        #toolbar button, #toolbar select, #toolbar input { padding: 8px 8px; border: 1px solid #ced4da; background-color: #ffffff; color: #495057; cursor: pointer; border-radius: 5px; font-size: 13px; transition: background-color 0.2s ease, border-color 0.2s ease; height: 36px; box-sizing: border-box; flex-shrink: 0; }
+        /* Styles CSS (ajout barre d'aide) */
+        html, body { overscroll-behavior: none; margin: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Inter', sans-serif; }
+        body { display: flex; flex-direction: column; background-color: #f0f0f0; } /* Body en colonne */
+        #toolbar { background-color: #e9ecef; padding: 8px 10px; border-bottom: 1px solid #dee2e6; display: flex; gap: 8px; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; flex-shrink: 0; z-index: 10; }
+        /* Common button styles */
+        #toolbar button, #toolbar select, #toolbar input[type="number"], #toolbar input[type="text"] {
+            padding: 8px 10px; border: 1px solid #ced4da; background-color: #ffffff; color: #495057;
+            cursor: pointer; border-radius: 5px; font-size: 14px;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            height: 38px; box-sizing: border-box; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        /* Specific styles for view buttons */
+        .view-button { min-width: 38px; font-weight: bold; padding: 8px; } /* Ensure square-ish shape */
         #toolbar button.active { background-color: #007bff; color: white; border-color: #0056b3; font-weight: bold; }
-        #toolbar button:hover:not(.active) { background-color: #f1f3f5; border-color: #adb5bd; }
-        #toolbar label { font-size: 13px; margin-left: 3px; margin-right: 1px; color: #495057; white-space: nowrap; }
-        #toolbar input[type="number"] { width: 55px; cursor: text; }
-        #toolbar input[type="text"]#project-title-input { width: 120px; flex-grow: 1; max-width: 180px;}
-        #viewport-container { flex-grow: 1; position: relative; overflow: hidden; background-color: #cccccc; -webkit-tap-highlight-color: transparent; cursor: default; }
+        #toolbar button.disabled, #toolbar button:disabled { background-color: #e9ecef; border-color: #ced4da; color: #adb5bd; cursor: not-allowed; }
+        #toolbar button:hover:not(.active):not(:disabled) { background-color: #f1f3f5; border-color: #adb5bd; }
+        #toolbar label { font-size: 14px; margin-left: 4px; margin-right: 2px; color: #495057; white-space: nowrap; align-self: center; }
+        #toolbar input[type="number"] { width: 65px; cursor: text; }
+        #toolbar input[type="text"] { width: 100px; cursor: text; }
+        #viewport-container { flex-grow: 1; position: relative; overflow: hidden; background-color: #cccccc; -webkit-tap-highlight-color: transparent; cursor: default; } /* Viewport prend l'espace restant */
+        #viewport-container.crosshair-cursor { cursor: crosshair; }
+        #viewport-container.pointer-cursor { cursor: pointer; }
         canvas { display: block; }
-        .info-text { font-size: 11px; color: #6c757d; padding: 0 5px; flex-basis: 100%; text-align: center; margin-top: 4px; order: 99; }
-        #element-select { min-width: 180px; max-width: 220px; }
-        #assise-select, #fraction-select { min-width: 90px; flex-grow: 1; max-width: 120px; }
-        .toolbar-group, .joint-group { display: flex; gap: 4px; align-items: center; border-left: 1px solid #ccc; padding-left: 6px; margin-left: 6px;}
-        .custom-dims-group, .custom-assise-group { display: flex; gap: 4px; align-items: center; margin-left: 6px; padding-left: 6px; border-left: 1px solid #ccc;}
-        .custom-dims-group input[type="number"] { width: 45px; }
-        .custom-dims-group input[type="text"] { width: 70px; }
-        .custom-dims-group label { margin-left: 0; }
-        .custom-assise-group input { width: 50px; }
-        .custom-assise-group button { padding: 8px; line-height: 1; }
-        .fraction-group { display: none; gap: 4px; align-items: center; }
-        .fraction-group.visible { display: flex; }
-        #btn-load-dims { margin-left: -2px; margin-right: 4px; padding: 8px; line-height: 1;}
+        .info-text { font-size: 12px; color: #6c757d; padding: 0 10px; flex-basis: 100%; text-align: center; margin-top: 5px; order: 99; }
+        #element-select, #assise-select { min-width: 150px; flex-grow: 1; max-width: 250px; } /* Ajustement taille selects */
+        .toolbar-group { display: flex; gap: 4px; align-items: center; border-left: 1px solid #ccc; padding-left: 8px; margin-left: 8px; }
+        #custom-element-group { display: none; gap: 6px; align-items: center; padding: 5px; background-color: #f8f9fa; border: 1px dashed #adb5bd; border-radius: 5px; margin-left: 10px; flex-wrap: wrap; }
+        #custom-element-group label { margin-left: 0; margin-right: 2px; } #custom-element-group input { flex-grow: 0; }
+        /* Icons using Unicode characters for simplicity */
+        .icon-select::before { content: "👆"; margin-right: 4px; } .icon-add::before { content: "➕"; margin-right: 4px; } .icon-move::before { content: "↔️"; margin-right: 4px; } .icon-rotate::before { content: "🔄"; margin-right: 4px; } .icon-duplicate::before { content: "📋"; margin-right: 4px; } .icon-delete::before { content: "🗑️"; margin-right: 4px; }
+        .icon-confirm::before { content: "✅"; } .icon-cancel::before { content: "❌"; } .icon-rotate-left::before { content: "↺"; font-size: 18px; } .icon-rotate-right::before { content: "↻"; font-size: 18px; } .icon-dpad-up::before { content: "⬆️"; font-size: 18px; } .icon-dpad-down::before { content: "⬇️"; font-size: 18px; }
+        .icon-pdf::before { content: "📄"; margin-right: 4px; font-size: 16px; } /* PDF Icon */
 
-        /* Context Menu Styles */
-        #context-menu { position: absolute; display: none; background-color: white; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); border-radius: 4px; padding: 5px 0; z-index: 100; min-width: 150px; }
-        #context-menu ul { list-style: none; margin: 0; padding: 0; }
-        #context-menu li { padding: 8px 15px; cursor: pointer; font-size: 14px; }
-        #context-menu li:hover { background-color: #f0f0f0; }
-        #context-menu li.disabled { color: #aaa; cursor: not-allowed; background-color: transparent; }
+        #watermark { position: absolute; bottom: 10px; left: 10px; font-size: 10px; color: rgba(0, 0, 0, 0.4); background-color: rgba(255, 255, 255, 0.3); padding: 2px 5px; border-radius: 3px; pointer-events: none; z-index: 5; }
+        #placement-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; align-items: center; gap: 10px; background-color: rgba(233, 236, 239, 0.8); padding: 15px; border-radius: 10px; z-index: 20; touch-action: none; }
+        #dpad-container { display: flex; align-items: center; gap: 15px; }
+        #dpad { display: grid; grid-template-columns: 40px 40px 40px; grid-template-rows: 40px 40px 40px; gap: 5px; justify-items: center; align-items: center; }
+        #dpad button, #placement-rotation button, #placement-vertical button { width: 40px; height: 40px; font-size: 20px; line-height: 40px; text-align: center; padding: 0; border: 1px solid #adb5bd; background-color: #f8f9fa; border-radius: 5px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+        #dpad button:hover, #placement-rotation button:hover, #placement-vertical button:hover { background-color: #e2e6ea; }
+        #dpad button:active, #placement-rotation button:active, #placement-vertical button:active { background-color: #ced4da; }
+        #dpad-up { grid-column: 2; grid-row: 1; } #dpad-left { grid-column: 1; grid-row: 2; } #dpad-right { grid-column: 3; grid-row: 2; } #dpad-down { grid-column: 2; grid-row: 3; }
+        #placement-rotation, #placement-vertical { display: flex; flex-direction: column; gap: 5px; }
+        #placement-actions { display: flex; gap: 10px; margin-top: 10px; }
+        #placement-actions button { width: 50px; height: 50px; font-size: 24px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #btn-place-element, #btn-confirm-move { background-color: #28a745; } #btn-cancel-placement, #btn-cancel-move { background-color: #dc3545; }
+        #btn-place-element:hover, #btn-confirm-move:hover { background-color: #218838; } #btn-cancel-placement:hover, #btn-cancel-move:hover { background-color: #c82333; }
+        #context-menu { position: absolute; display: none; flex-direction: column; gap: 5px; background-color: white; border: 1px solid #ccc; border-radius: 5px; padding: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 30; min-width: 120px; }
+        #context-menu button { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 10px; font-size: 14px; text-align: left; background-color: transparent; border: none; border-radius: 3px; cursor: pointer; color: #343a40; }
+        #context-menu button:hover { background-color: #e9ecef; } #context-menu button .icon::before { font-size: 16px; display: inline-block; width: 20px; text-align: center; }
+        /* Context Menu Icons */
+        .ctx-icon-rotate::before { content: "🔄"; } .ctx-icon-move::before { content: "↔️"; } .ctx-icon-duplicate::before { content: "📋"; } .ctx-icon-delete::before { content: "🗑️"; }
 
-        /* Footer Info & Placer Button Styles */
-        #footer-controls { position: fixed; bottom: 5px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 5; pointer-events: none; }
-        #footer-info { font-size: 10px; color: #555; background-color: rgba(255, 255, 255, 0.7); padding: 2px 5px; border-radius: 3px; pointer-events: auto; }
-        #element-counter { font-size: 11px; color: #333; background-color: rgba(230, 230, 230, 0.8); padding: 3px 8px; border-radius: 3px; margin-left: auto; margin-right: 10px; pointer-events: auto; }
-        #btn-place-element { padding: 12px 20px; font-size: 18px; font-weight: bold; border: 1px solid #1a5a1a; background-color: #28a745; color: white; border-radius: 5px; cursor: pointer; box-shadow: 1px 1px 3px rgba(0,0,0,0.3); pointer-events: auto; display: none; opacity: 1; }
-        #btn-place-element:disabled { background-color: #a5d6a7; border-color: #81c784; cursor: not-allowed; opacity: 0.8; }
+        /* Help Bar Styles */
+        #help-bar {
+            background-color: #343a40; /* Dark background */
+            color: #f8f9fa; /* Light text */
+            padding: 6px 12px;
+            font-size: 13px;
+            text-align: center;
+            border-top: 1px solid #495057;
+            flex-shrink: 0; /* Prevent shrinking */
+            z-index: 5; /* Below toolbar */
+            box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+        }
+        #help-bar kbd { /* Style for keyboard keys */
+            background-color: #6c757d;
+            color: #fff;
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid #495057;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 0 2px;
+            display: inline-block; /* Ensure proper spacing */
+            line-height: 1.2;
+        }
     </style>
     <script type="importmap">
         {
@@ -53,291 +93,521 @@
             }
         }
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="toolbar">
-        <label for="project-title-input">Titre:</label>
-        <input type="text" id="project-title-input" value="Mon Projet Mur">
-        <button id="btn-export-pdf" title="Exporter en PDF">📄 PDF</button>
-        <span class="toolbar-separator" style="border-left: 1px solid #ccc; margin: 0 5px;"></span>
+        <button id="tool-select" class="icon-select active" title="Sélectionner / Naviguer (S)"></button>
+        <button id="tool-add" class="icon-add" title="Ajouter Élément (A)"></button>
+        <button id="tool-move" class="icon-move disabled" title="Déplacer Élément (M)"></button>
+        <button id="tool-rotate" class="icon-rotate disabled" title="Rotation Sélection 45° (R)"></button>
+        <button id="tool-duplicate" class="icon-duplicate disabled" title="Dupliquer Élément (D)"></button>
+         <button id="tool-delete" class="icon-delete disabled" title="Supprimer Sélection (Suppr)"></button>
 
-        <button id="tool-add" title="Ajouter Élément Sélectionné">➕ Liste</button>
-        <button id="btn-rotate-element" title="Pivoter Élément (5°)">🔄</button>
-        <label for="element-select">Élément:</label>
-        <select id="element-select"></select>
-        <button id="btn-load-dims" title="Charger Dims dans Perso">📥</button>
-
-        <div id="fraction-group" class="fraction-group">
-             <label for="fraction-select">Fraction:</label>
-             <select id="fraction-select">
-                 <option value="1" selected>Entière (1/1)</option>
-                 <option value="0.75">3/4</option>
-                 <option value="0.5">1/2</option>
-                 <option value="0.25">1/4</option>
-             </select>
-        </div>
-
-        <div class="custom-dims-group">
-            <button id="tool-add-custom" title="Ajouter Élément Personnalisé">➕ Perso</button>
-            <label for="custom-name">Nom:</label> <input type="text" id="custom-name" value="Perso">
-            <label for="custom-width">L:</label> <input type="number" id="custom-width" value="20" step="1" min="1">
-            <label for="custom-depth">P:</label> <input type="number" id="custom-depth" value="10" step="1" min="1">
-            <label for="custom-height">H:</label> <input type="number" id="custom-height" value="10" step="1" min="1">
-        </div>
-
-        <div class="joint-group">
-            <label for="joint-horizontal">Joint H(Y):</label>
-            <input type="number" id="joint-horizontal" value="1.2" step="0.1" min="0" title="Joint Horizontal (affecte hauteur Y)">
-            <label for="joint-vertical">Joint V(X/Z):</label>
-            <input type="number" id="joint-vertical" value="1.2" step="0.1" min="0" title="Joint Vertical (affecte largeur X/Z)">
-        </div>
-
-
-        <label for="assise-select">Contrainte Assise:</label>
-        <select id="assise-select" title="Contrainte de hauteur de pose (base de l'élément)"></select>
-        <div class="custom-assise-group">
-            <input type="number" id="custom-assise-input" placeholder="cm" step="0.1" min="0">
-            <button id="btn-add-assise" title="Ajouter Assise Perso">+</button>
+        <div class="toolbar-group">
+            <label for="element-select">Élément:</label>
+            <select id="element-select"></select>
+            <label for="joint-thickness">Joint(cm):</label>
+            <input type="number" id="joint-thickness" value="1.2" step="0.1" min="0">
         </div>
 
         <div class="toolbar-group">
-             <button id="btn-orbit-left" title="Orbite Gauche">↺</button>
-             <button id="btn-orbit-right" title="Orbite Droite">↻</button>
-             <button id="btn-zoom-in" title="Zoom Avant">+</button>
-             <button id="btn-zoom-out" title="Zoom Arrière">-</button>
-             <button id="btn-rotate-scene" title="Rotation Auto Scène">🌍</button>
-             <button id="btn-toggle-color" title="Basculer Couleur/Blanc">🎨</button>
+             <label for="assise-select">Assise:</label>
+             <select id="assise-select"></select>
+             <button id="btn-create-assise" title="Créer Assise à partir de l'élément sélectionné">➕ Assise</button>
         </div>
-        <span class="info-text">Mode: Navigation</span>
+
+        <div id="custom-element-group">
+            <label for="custom-name">Nom:</label> <input type="text" id="custom-name" value="Perso">
+            <label for="custom-width">L(cm):</label> <input type="number" id="custom-width" value="20" step="0.1" min="0.1">
+            <label for="custom-height">H(cm):</label> <input type="number" id="custom-height" value="10" step="0.1" min="0.1">
+            <label for="custom-depth">P(cm):</label> <input type="number" id="custom-depth" value="10" step="0.1" min="0.1">
+        </div>
+
+        <div class="toolbar-group">
+             <label>Vues:</label>
+             <button id="btn-view-front" class="view-button" title="Vue de Face (Z+)">F</button>
+             <button id="btn-view-back" class="view-button" title="Vue Arrière (Z-)">B</button>
+             <button id="btn-view-left" class="view-button" title="Vue Gauche (X-)">G</button>
+             <button id="btn-view-right" class="view-button" title="Vue Droite (X+)">D</button>
+             <button id="btn-view-top" class="view-button" title="Vue Dessus (Y+)">H</button>
+             <button id="btn-view-bottom" class="view-button" title="Vue Dessous (Y-)">B</button> <button id="btn-view-iso" class="view-button" title="Vue Isométrique/3D">3D</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button id="btn-export-pdf" class="icon-pdf" title="Exporter les vues orthogonales + 3D en PDF A4 Portrait">Exporter PDF</button>
+        </div>
+
+        <span class="info-text">Mode: Sélection / Navigation</span>
     </div>
+
     <div id="viewport-container">
-        <div id="context-menu">
-            <ul>
-                <li id="ctx-rotate">Rotation 90°</li>
-                <li id="ctx-modify">Charger Dims (Modifier)</li>
-                <li id="ctx-move" class="disabled">Déplacer (Non impl.)</li>
-                <li id="ctx-delete">Supprimer</li>
-            </ul>
-        </div>
-        <div id="footer-controls">
-            <div id="footer-info">Mur Simulateur 3D v0.0.1 par J.BROHEZ</div>
-            <div id="element-counter">Éléments: 0</div>
-            <button id="btn-place-element" disabled>Placer</button>
-        </div>
+         <div id="watermark">MurSimulateur3D v.0.0.6 par J.Brohez</div>
+         <div id="placement-controls">
+             <div id="dpad-container">
+                 <div id="placement-rotation">
+                     <button id="placement-rotate-left" class="icon-rotate-left" title="Rotation Gauche 45° (Q)"></button>
+                     <button id="placement-rotate-right" class="icon-rotate-right" title="Rotation Droite 45° (E)"></button>
+                 </div>
+                 <div id="dpad">
+                     <button id="dpad-up" title="Avancer (Z-)">▲</button>
+                     <button id="dpad-left" title="Gauche (X-)">◀</button>
+                     <button id="dpad-right" title="Droite (X+)">▶</button>
+                     <button id="dpad-down" title="Reculer (Z+)">▼</button>
+                 </div>
+                 <div id="placement-vertical">
+                      <button id="dpad-up-y" class="icon-dpad-up" title="Monter (Y+/PgUp)"></button>
+                      <button id="dpad-down-y" class="icon-dpad-down" title="Descendre (Y-/PgDn)"></button>
+                 </div>
+             </div>
+             <div id="placement-actions">
+                 <button id="btn-place-element" class="icon-confirm" title="Placer Élément (Entrée)"></button>
+                 <button id="btn-confirm-move" class="icon-confirm" title="Confirmer Déplacement (Entrée)"></button>
+                 <button id="btn-cancel-placement" class="icon-cancel" title="Annuler Placement (Échap)"></button>
+                 <button id="btn-cancel-move" class="icon-cancel" title="Annuler Déplacement (Échap)"></button>
+             </div>
+         </div>
+         <div id="context-menu">
+             <button id="ctx-rotate"><span class="icon ctx-icon-rotate"></span>Rotation 45°</button>
+             <button id="ctx-move"><span class="icon ctx-icon-move"></span>Déplacer</button>
+             <button id="ctx-duplicate"><span class="icon ctx-icon-duplicate"></span>Dupliquer</button>
+             <button id="ctx-delete"><span class="icon ctx-icon-delete"></span>Supprimer</button>
+         </div>
     </div>
+
+    <div id="help-bar">Aide contextuelle apparaîtra ici...</div>
 
     <script type="module">
-
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Make jsPDF globally available after import
         const { jsPDF } = window.jspdf;
 
-        // --- DOM Elements (Unchanged) ---
+        // --- Constants ---
+        const GRID_SIZE_CM = 1000;
+        const GRID_STEP_CM = 50;
+        const CUSTOM_ELEMENT_ID = "custom";
+        const DEFAULT_CUSTOM_COLOR = 0xAAAAAA;
+        const SELECTION_COLOR = 0xffaa00;
+        const CLICK_THRESHOLD = 200;
+        const LONG_PRESS_THRESHOLD = 500;
+        const DPAD_INCREMENT_CM = 1;
+        const ROTATION_INCREMENT = Math.PI / 4;
+        const DRAG_THRESHOLD_PX = 5;
+        const POSE_LIBRE_ID = "pose-libre";
+        const VIEW_PADDING_FACTOR = 1.15;
+        const MIN_VIEW_SIZE = 50;
+        const INITIAL_CAMERA_HEIGHT_CM = 170;
+
+        // --- DOM Elements ---
         const viewportContainer = document.getElementById('viewport-container');
-        const contextMenu = document.getElementById('context-menu');
         const toolbar = document.getElementById('toolbar');
-        const projectTitleInput = document.getElementById('project-title-input');
-        const btnExportPDF = document.getElementById('btn-export-pdf');
         const elementSelect = document.getElementById('element-select');
-        const btnLoadDims = document.getElementById('btn-load-dims');
-        const jointHorizontalInput = document.getElementById('joint-horizontal');
-        const jointVerticalInput = document.getElementById('joint-vertical');
-        const assiseSelect = document.getElementById('assise-select');
-        const customAssiseInput = document.getElementById('custom-assise-input');
-        const btnAddAssise = document.getElementById('btn-add-assise');
-        const fractionGroup = document.getElementById('fraction-group');
-        const fractionSelect = document.getElementById('fraction-select');
+        const jointInput = document.getElementById('joint-thickness');
         const infoText = document.querySelector('.info-text');
-        const addListButton = document.getElementById('tool-add');
-        const addCustomButton = document.getElementById('tool-add-custom');
+        const selectToolButton = document.getElementById('tool-select');
+        const addToolButton = document.getElementById('tool-add');
+        const moveToolButton = document.getElementById('tool-move');
+        const rotateToolButton = document.getElementById('tool-rotate');
+        const duplicateToolButton = document.getElementById('tool-duplicate');
+        const deleteToolButton = document.getElementById('tool-delete');
+        const toolButtons = [selectToolButton, addToolButton, moveToolButton, rotateToolButton, duplicateToolButton, deleteToolButton];
+        const customElementGroup = document.getElementById('custom-element-group');
         const customNameInput = document.getElementById('custom-name');
         const customWidthInput = document.getElementById('custom-width');
-        const customDepthInput = document.getElementById('custom-depth');
         const customHeightInput = document.getElementById('custom-height');
-        const btnRotateElement = document.getElementById('btn-rotate-element');
-        const btnOrbitLeft = document.getElementById('btn-orbit-left');
-        const btnOrbitRight = document.getElementById('btn-orbit-right');
-        const btnZoomIn = document.getElementById('btn-zoom-in');
-        const btnZoomOut = document.getElementById('btn-zoom-out');
-        const btnRotateScene = document.getElementById('btn-rotate-scene');
-        const btnToggleColor = document.getElementById('btn-toggle-color');
-        const footerControls = document.getElementById('footer-controls');
-        const elementCounterElement = document.getElementById('element-counter');
-        const btnPlaceElement = document.getElementById('btn-place-element');
+        const customDepthInput = document.getElementById('custom-depth');
+        const btnViewFront = document.getElementById('btn-view-front');
+        const btnViewBack = document.getElementById('btn-view-back');
+        const btnViewLeft = document.getElementById('btn-view-left');
+        const btnViewRight = document.getElementById('btn-view-right');
+        const btnViewTop = document.getElementById('btn-view-top');
+        const btnViewBottom = document.getElementById('btn-view-bottom');
+        const btnViewIso = document.getElementById('btn-view-iso');
+        const btnExportPdf = document.getElementById('btn-export-pdf');
+        const placementControlsDiv = document.getElementById('placement-controls');
+        const dpadUp = document.getElementById('dpad-up');
+        const dpadDown = document.getElementById('dpad-down');
+        const dpadLeft = document.getElementById('dpad-left');
+        const dpadRight = document.getElementById('dpad-right');
+        const placementRotateLeft = document.getElementById('placement-rotate-left');
+        const placementRotateRight = document.getElementById('placement-rotate-right');
+        const dpadUpY = document.getElementById('dpad-up-y');
+        const dpadDownY = document.getElementById('dpad-down-y');
+        const placeButton = document.getElementById('btn-place-element');
+        const confirmMoveButton = document.getElementById('btn-confirm-move');
+        const cancelPlacementButton = document.getElementById('btn-cancel-placement');
+        const cancelMoveButton = document.getElementById('btn-cancel-move');
+        const contextMenu = document.getElementById('context-menu');
+        const ctxRotateButton = document.getElementById('ctx-rotate');
+        const ctxMoveButton = document.getElementById('ctx-move');
+        const ctxDuplicateButton = document.getElementById('ctx-duplicate');
+        const ctxDeleteButton = document.getElementById('ctx-delete');
+        const assiseSelect = document.getElementById('assise-select');
+        const createAssiseButton = document.getElementById('btn-create-assise');
+        const helpBar = document.getElementById('help-bar');
 
-        // --- Configuration (Unchanged) ---
-        const GRID_SIZE_CM = 1000;
-        const ROTATION_STEP_DEG = 5;
-        const CUSTOM_ELEMENT_COLOR = 0x0000FF;
-        const TARGET_BRICK_WIDTH = 19;
-        const TARGET_BLOCK_WIDTH = 39;
-        // const ASSISE_TOLERANCE = 0.1; // Removed
-        const LONG_PRESS_DURATION = 500;
-        const LONG_PRESS_MOVE_THRESHOLD = 5;
 
-        // --- Element Type Definitions (Unchanged - Y-up) ---
-        const elementTypes = { /* ... same as before ... */
-             "M50": { name: "Brique M50", dim: [19, 9, 5], color: 0xCC6633, isCourseElement: true }, "M57": { name: "Brique M57", dim: [19, 9, 5.7], color: 0xCC6633, isCourseElement: true }, "M65": { name: "Brique M65", dim: [19, 9, 6.5], color: 0xCC6633, isCourseElement: true }, "M90": { name: "Brique M90", dim: [19, 9, 9], color: 0xCC6633, isCourseElement: true }, "WF": { name: "Brique WF", dim: [21, 9, 9], color: 0xD27D2D, isCourseElement: true }, "WFD": { name: "Brique WFD", dim: [21, 9, 9], color: 0xD27D2D, isCourseElement: true }, "M50c": { name: "M50 champ", dim: [9, 19, 5], color: 0xB85A2D }, "M57c": { name: "M57 champ", dim: [9, 19, 5.7], color: 0xB85A2D }, "M65c": { name: "M65 champ", dim: [9, 19, 6.5], color: 0xB85A2D }, "M90c": { name: "M90 champ", dim: [9, 21, 9], color: 0xB85A2D }, "WFc": { name: "WF champ", dim: [9, 21, 9], color: 0xC06C2A }, "WFDc": { name: "WFD champ", dim: [9, 21, 9], color: 0xC06C2A }, "B9": { name: "Bloc 9", dim: [39, 9, 19], color: 0xAAAAAA, isCourseElement: true }, "B14": { name: "Bloc 14", dim: [39, 14, 19], color: 0xAAAAAA, isCourseElement: true }, "B19": { name: "Bloc 19", dim: [39, 19, 19], color: 0xAAAAAA, isCourseElement: true }, "B29": { name: "Bloc 29", dim: [39, 29, 19], color: 0xAAAAAA, isCourseElement: true }, "V1": { name: "Vide 1cm", dim: [40, 19, 1], color: 0xDDDDDD }, "V2": { name: "Vide 2cm", dim: [40, 19, 2], color: 0xDDDDDD }, "V3": { name: "Vide 3cm", dim: [40, 19, 3], color: 0xDDDDDD }, "V4": { name: "Vide 4cm", dim: [40, 19, 4], color: 0xDDDDDD }, "V5": { name: "Vide 5cm", dim: [40, 19, 5], color: 0xDDDDDD }, "L120_14": { name: "Lint 120x14", dim: [120, 14, 19], color: 0x888888, isCourseElement: true }, "L140_14": { name: "Lint 140x14", dim: [140, 14, 19], color: 0x888888, isCourseElement: true }, "L160_14": { name: "Lint 160x14", dim: [160, 14, 19], color: 0x888888, isCourseElement: true }, "L180_14": { name: "Lint 180x14", dim: [180, 14, 19], color: 0x888888, isCourseElement: true }, "L200_14": { name: "Lint 200x14", dim: [200, 14, 19], color: 0x888888, isCourseElement: true }, "L220_14": { name: "Lint 220x14", dim: [220, 14, 19], color: 0x888888, isCourseElement: true }, "L240_14": { name: "Lint 240x14", dim: [240, 14, 19], color: 0x888888, isCourseElement: true }, "L260_14": { name: "Lint 260x14", dim: [260, 14, 19], color: 0x888888, isCourseElement: true }, "L280_14": { name: "Lint 280x14", dim: [280, 14, 19], color: 0x888888, isCourseElement: true }, "L300_14": { name: "Lint 300x14", dim: [300, 14, 19], color: 0x888888, isCourseElement: true },
-             "L100_9": { name: "Lint 100x9", dim: [100, 9, 19], color: 0x888888, isCourseElement: true }, "L120_9": { name: "Lint 120x9", dim: [120, 9, 19], color: 0x888888, isCourseElement: true }, "L160_9": { name: "Lint 160x9", dim: [160, 9, 19], color: 0x888888, isCourseElement: true }, "L180_9": { name: "Lint 180x9", dim: [180, 9, 19], color: 0x888888, isCourseElement: true }, "L200_9": { name: "Lint 200x9", dim: [200, 9, 19], color: 0x888888, isCourseElement: true }, "L220_9": { name: "Lint 220x9", dim: [220, 9, 19], color: 0x888888, isCourseElement: true }, "L240_9": { name: "Lint 240x9", dim: [240, 9, 19], color: 0x888888, isCourseElement: true }, "L260_9": { name: "Lint 260x9", dim: [260, 9, 19], color: 0x888888, isCourseElement: true }, "L280_9": { name: "Lint 280x9", dim: [280, 9, 19], color: 0x888888, isCourseElement: true }, "L300_9": { name: "Lint 300x9", dim: [300, 9, 19], color: 0x888888, isCourseElement: true },
-             "L100_19": { name: "Lint 100x19", dim: [100, 19, 19], color: 0x888888, isCourseElement: true }, "L120_19": { name: "Lint 120x19", dim: [120, 19, 19], color: 0x888888, isCourseElement: true }, "L160_19": { name: "Lint 160x19", dim: [160, 19, 19], color: 0x888888, isCourseElement: true }, "L180_19": { name: "Lint 180x19", dim: [180, 19, 19], color: 0x888888, isCourseElement: true }, "L200_19": { name: "Lint 200x19", dim: [200, 19, 19], color: 0x888888, isCourseElement: true }, "L220_19": { name: "Lint 220x19", dim: [220, 19, 19], color: 0x888888, isCourseElement: true }, "L240_19": { name: "Lint 240x19", dim: [240, 19, 19], color: 0x888888, isCourseElement: true }, "L260_19": { name: "Lint 260x19", dim: [260, 19, 19], color: 0x888888, isCourseElement: true }, "L280_19": { name: "Lint 280x19", dim: [280, 19, 19], color: 0x888888, isCourseElement: true }, "L300_19": { name: "Lint 300x19", dim: [300, 19, 19], color: 0x888888, isCourseElement: true },
-             "BCA60_9": { name: "BC Ass 60x9", dim: [60, 9, 20], color: 0xE0E0E0, isCourseElement: true }, "BCA60_14": { name: "BC Ass 60x14", dim: [60, 14, 20], color: 0xE0E0E0, isCourseElement: true }, "BCA60_19": { name: "BC Ass 60x19", dim: [60, 19, 20], color: 0xE0E0E0, isCourseElement: true }, "BC60_10": { name: "BC 60x10", dim: [60, 10, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_15": { name: "BC 60x15", dim: [60, 15, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_20": { name: "BC 60x20", dim: [60, 20, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_24": { name: "BC 60x24", dim: [60, 24, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_30": { name: "BC 60x30", dim: [60, 30, 25], color: 0xF0F0F0, isCourseElement: true }, "BC60_36": { name: "BC 60x36.5", dim: [60, 36.5, 25], color: 0xF0F0F0, isCourseElement: true },
-             "PUR5": { name: "PUR 5cm", dim: [120, 60, 5], color: 0xFFEC8B }, "PUR6": { name: "PUR 6cm", dim: [120, 60, 6], color: 0xFFEC8B }, "PUR7": { name: "PUR 7cm", dim: [120, 60, 7], color: 0xFFEC8B }, "PUR8": { name: "PUR 8cm", dim: [120, 60, 8], color: 0xFFEC8B }, "PUR9": { name: "PUR 9cm", dim: [120, 60, 9], color: 0xFFEC8B }, "PUR10": { name: "PUR 10cm", dim: [120, 60, 10], color: 0xFFEC8B }, "PUR11": { name: "PUR 11cm", dim: [120, 60, 11], color: 0xFFEC8B }, "PUR12": { name: "PUR 12cm", dim: [120, 60, 12], color: 0xFFEC8B }, "PUR13": { name: "PUR 13cm", dim: [120, 60, 13], color: 0xFFEC8B }, "PUR14": { name: "PUR 14cm", dim: [120, 60, 14], color: 0xFFEC8B }, "PUR15": { name: "PUR 15cm", dim: [120, 60, 15], color: 0xFFEC8B }, "PUR16": { name: "PUR 16cm", dim: [120, 60, 16], color: 0xFFEC8B }, "PUR18": { name: "PUR 18cm", dim: [120, 60, 18], color: 0xFFEC8B },
-             "PROFIL": { name: "Profil", dim: [250, 6.5, 6.5], color: 0xC0C0C0 }
-        };
-        const CUSTOM_ELEMENT_ID = 'custom';
-        const WHITE_COLOR = 0xFFFFFF;
+        // --- Element Type Definitions ---
+        const elementTypes = { "M50": { name: "Brique M50", dim: [19, 5, 9], color: 0xCC6633 }, "M57": { name: "Brique M57", dim: [19, 5.7, 9], color: 0xCC6633 }, "M65": { name: "Brique M65", dim: [19, 6.5, 9], color: 0xCC6633 }, "M90": { name: "Brique M90", dim: [19, 9, 9], color: 0xCC6633 }, "WF": { name: "Brique WF", dim: [21, 5, 10], color: 0xD2691E }, "WFD": { name: "Brique WFD", dim: [21, 6.5, 10], color: 0xD2691E }, "M50c": { name: "M50 champ", dim: [9, 19, 5], color: 0xB87333 }, "M57c": { name: "M57 champ", dim: [9, 19, 5.7], color: 0xB87333 }, "M65c": { name: "M65 champ", dim: [9, 19, 6.5], color: 0xB87333 }, "M90c": { name: "M90 champ", dim: [9, 19, 9], color: 0xB87333 }, "WFc": { name: "WF champ", dim: [10, 21, 5], color: 0xC0C0C0 }, "WFDc": { name: "WFD champ", dim: [10, 21, 6.5], color: 0xC0C0C0 }, "B9": { name: "Bloc 9", dim: [39, 19, 9], color: 0xAAAAAA }, "B14": { name: "Bloc 14", dim: [39, 19, 14], color: 0xAAAAAA }, "B19": { name: "Bloc 19", dim: [39, 19, 19], color: 0xAAAAAA }, "B29": { name: "Bloc 29", dim: [39, 19, 29], color: 0xAAAAAA }, "V1": { name: "Vide 1cm", dim: [40, 19, 1], color: 0xDDDDDD }, "V2": { name: "Vide 2cm", dim: [40, 19, 2], color: 0xDDDDDD }, "V3": { name: "Vide 3cm", dim: [40, 19, 3], color: 0xDDDDDD }, "V4": { name: "Vide 4cm", dim: [40, 19, 4], color: 0xDDDDDD }, "V5": { name: "Vide 5cm", dim: [40, 19, 5], color: 0xDDDDDD }, "L120_14": { name: "Lint 120x14", dim: [120, 19, 14], color: 0x888888 }, "L140_14": { name: "Lint 140x14", dim: [140, 19, 14], color: 0x888888 }, "L160_14": { name: "Lint 160x14", dim: [160, 19, 14], color: 0x888888 }, "L180_14": { name: "Lint 180x14", dim: [180, 19, 14], color: 0x888888 }, "L200_14": { name: "Lint 200x14", dim: [200, 19, 14], color: 0x888888 }, "L220_14": { name: "Lint 220x14", dim: [220, 19, 14], color: 0x888888 }, "L240_14": { name: "Lint 240x14", dim: [240, 19, 14], color: 0x888888 }, "L260_14": { name: "Lint 260x14", dim: [260, 19, 14], color: 0x888888 }, "L280_14": { name: "Lint 280x14", dim: [280, 19, 14], color: 0x888888 }, "L300_14": { name: "Lint 300x14", dim: [300, 19, 14], color: 0x888888 }, "L100_9": { name: "Lint 100x9", dim: [100, 19, 9], color: 0x888888 }, "L120_9": { name: "Lint 120x9", dim: [120, 19, 9], color: 0x888888 }, "L160_9": { name: "Lint 160x9", dim: [160, 19, 9], color: 0x888888 }, "L180_9": { name: "Lint 180x9", dim: [180, 19, 9], color: 0x888888 }, "L200_9": { name: "Lint 200x9", dim: [200, 19, 9], color: 0x888888 }, "L220_9": { name: "Lint 220x9", dim: [220, 19, 9], color: 0x888888 }, "L240_9": { name: "Lint 240x9", dim: [240, 19, 9], color: 0x888888 }, "L260_9": { name: "Lint 260x9", dim: [260, 19, 9], color: 0x888888 }, "L280_9": { name: "Lint 280x9", dim: [280, 19, 9], color: 0x888888 }, "L300_9": { name: "Lint 300x9", dim: [300, 19, 9], color: 0x888888 }, "L100_19": { name: "Lint 100x19", dim: [100, 19, 19], color: 0x888888 }, "L120_19": { name: "Lint 120x19", dim: [120, 19, 19], color: 0x888888 }, "L160_19": { name: "Lint 160x19", dim: [160, 19, 19], color: 0x888888 }, "L180_19": { name: "Lint 180x19", dim: [180, 19, 19], color: 0x888888 }, "L200_19": { name: "Lint 200x19", dim: [200, 19, 19], color: 0x888888 }, "L220_19": { name: "Lint 220x19", dim: [220, 19, 19], color: 0x888888 }, "L240_19": { name: "Lint 240x19", dim: [240, 19, 19], color: 0x888888 }, "L260_19": { name: "Lint 260x19", dim: [260, 19, 19], color: 0x888888 }, "L280_19": { name: "Lint 280x19", dim: [280, 19, 19], color: 0x888888 }, "L300_19": { name: "Lint 300x19", dim: [300, 19, 19], color: 0x888888 }, "BCA60_9": { name: "BC Ass 60x9", dim: [60, 20, 9], color: 0xE0E0E0 }, "BCA60_14": { name: "BC Ass 60x14", dim: [60, 20, 14], color: 0xE0E0E0 }, "BCA60_19": { name: "BC Ass 60x19", dim: [60, 20, 19], color: 0xE0E0E0 }, "BC60_10": { name: "BC 60x10", dim: [60, 25, 10], color: 0xF0F0F0 }, "BC60_15": { name: "BC 60x15", dim: [60, 25, 15], color: 0xF0F0F0 }, "BC60_20": { name: "BC 60x20", dim: [60, 25, 20], color: 0xF0F0F0 }, "BC60_24": { name: "BC 60x24", dim: [60, 25, 24], color: 0xF0F0F0 }, "BC60_30": { name: "BC 60x30", dim: [60, 25, 30], color: 0xF0F0F0 }, "BC60_36": { name: "BC 60x36.5", dim: [60, 25, 36.5], color: 0xF0F0F0 }, "PUR5": { name: "PUR 5cm", dim: [120, 60, 5], color: 0xFFFF99 }, "PUR6": { name: "PUR 6cm", dim: [120, 60, 6], color: 0xFFFF99 }, "PUR7": { name: "PUR 7cm", dim: [120, 60, 7], color: 0xFFFF99 }, "PUR8": { name: "PUR 8cm", dim: [120, 60, 8], color: 0xFFFF99 }, "PUR9": { name: "PUR 9cm", dim: [120, 60, 9], color: 0xFFFF99 }, "PUR10": { name: "PUR 10cm", dim: [120, 60, 10], color: 0xFFFF99 }, "PUR11": { name: "PUR 11cm", dim: [120, 60, 11], color: 0xFFFF99 }, "PUR12": { name: "PUR 12cm", dim: [120, 60, 12], color: 0xFFFF99 }, "PUR13": { name: "PUR 13cm", dim: [120, 60, 13], color: 0xFFFF99 }, "PUR14": { name: "PUR 14cm", dim: [120, 60, 14], color: 0xFFFF99 }, "PUR15": { name: "PUR 15cm", dim: [120, 60, 15], color: 0xFFFF99 }, "PUR16": { name: "PUR 16cm", dim: [120, 60, 16], color: 0xFFFF99 }, "PUR18": { name: "PUR 18cm", dim: [120, 60, 18], color: 0xFFFF99 }, "PROFIL": { name: "Profil", dim: [250, 6.5, 6.5], color: 0xC0C0C0 } };
 
-        // --- State (Unchanged) ---
-        let currentTool = 'navigate';
+        // --- State Variables ---
+        let currentTool = 'select';
+        let addState = 'idle';
+        let moveState = 'idle';
         let selectedElementTypeId = Object.keys(elementTypes)[0];
-        let selectedFraction = '1';
-        let jointThicknessY = parseFloat(jointHorizontalInput.value) || 1.2;
-        let jointThicknessX = parseFloat(jointVerticalInput.value) || 1.2;
-        let selectedAssiseConstraint = null;
-        const customAssiseValues = new Set();
+        let jointThicknessCm = parseFloat(jointInput.value) || 1.2;
         let placedElements = [];
         let nextElementId = 0;
-        let isSceneRotating = false;
-        let ghostElementRotationY = 0;
-        let lastPointerEvent = null;
+        let selectedElement = null;
+        let elementForContextMenu = null;
+        let isDragging = false;
+        let pointerDownTime = 0;
         let longPressTimer = null;
-        let pointerDownStartPos = { x: 0, y: 0 };
-        let didLongPress = false;
-        let contextMenuTarget = null;
-        let colorMode = 'color';
+        let originalMovePosition = null;
+        let pointerDownCoords = { x: 0, y: 0 };
+        let lastPerspectiveCameraState = null;
 
-        // --- Three.js Setup (Unchanged) ---
-        let scene, camera, renderer, controls, raycaster, pointer, axesHelper;
+        // Assise Management
+        let assises = [{ id: POSE_LIBRE_ID, name: "Pose Libre", height: null }];
+        let activeAssiseId = POSE_LIBRE_ID;
+
+        // --- Three.js Core Components ---
+        let scene, camera, renderer, controls, raycaster, pointer, axesHelper, gridHelper;
         let groundPlane, ghostElement;
         const objectsToRaycast = [];
-        const clock = new THREE.Clock();
+        let initialCameraPosition;
 
+        /** Initializes the Three.js scene, camera, renderer, controls, lights, and helpers */
         function init() {
+            // Scene setup
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
+
+            // Camera setup (Perspective)
             const aspect = viewportContainer.clientWidth / viewportContainer.clientHeight;
-            camera = new THREE.PerspectiveCamera(60, aspect, 1, 5000);
-            camera.position.set(20, 25, 32.5); camera.up.set(0, 1, 0); camera.lookAt(0, 5, 0);
+            camera = new THREE.PerspectiveCamera(50, aspect, 1, GRID_SIZE_CM * 5);
+            const initialTargetPoint = new THREE.Vector3(0, GRID_SIZE_CM * 0.1, 0);
+            const originalCloserPosition = new THREE.Vector3(40, 45, 40);
+            const cameraDirection = new THREE.Vector3().subVectors(originalCloserPosition, initialTargetPoint);
+            cameraDirection.multiplyScalar(1/3);
+            initialCameraPosition = new THREE.Vector3().addVectors(initialTargetPoint, cameraDirection);
+            initialCameraPosition.y = INITIAL_CAMERA_HEIGHT_CM;
+            camera.position.copy(initialCameraPosition);
+            camera.lookAt(initialTargetPoint);
+            lastPerspectiveCameraState = { position: camera.position.clone(), target: initialTargetPoint.clone() };
+            // console.log(`Position initiale caméra: X=${initialCameraPosition.x.toFixed(1)}, Y=${initialCameraPosition.y.toFixed(1)}, Z=${initialCameraPosition.z.toFixed(1)} (Hauteur: ${INITIAL_CAMERA_HEIGHT_CM}cm)`); // Log removed
+
+            // Renderer setup
             renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
             renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             viewportContainer.appendChild(renderer.domElement);
+
+            // OrbitControls setup
             controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true; controls.dampingFactor = 0.1; controls.target.set(0, 5, 0);
-            controls.minDistance = 2; controls.maxDistance = 1500;
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); scene.add(ambientLight);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 5;
+            controls.maxDistance = GRID_SIZE_CM * 4;
+            controls.maxPolarAngle = Math.PI;
+            controls.target.copy(initialTargetPoint);
+            controls.listenToKeyEvents(window);
+            controls.enabled = true;
+            controls.addEventListener('end', () => {
+                if (controls.enabled) {
+                    lastPerspectiveCameraState = { position: camera.position.clone(), target: controls.target.clone() };
+                }
+            });
+            controls.update();
+
+            // Lighting setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-            directionalLight.position.set(150, 300, 200); directionalLight.castShadow = true;
+            directionalLight.position.set(200, 350, 250);
+            directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 2048; directionalLight.shadow.mapSize.height = 2048;
             directionalLight.shadow.camera.near = 50; directionalLight.shadow.camera.far = 1000;
-            const shadowCamSize = GRID_SIZE_CM / 1.5;
+            const shadowCamSize = GRID_SIZE_CM;
             directionalLight.shadow.camera.left = -shadowCamSize; directionalLight.shadow.camera.right = shadowCamSize;
             directionalLight.shadow.camera.top = shadowCamSize; directionalLight.shadow.camera.bottom = -shadowCamSize;
-            directionalLight.shadow.camera.updateProjectionMatrix(); scene.add(directionalLight);
+            directionalLight.shadow.camera.updateProjectionMatrix();
+            scene.add(directionalLight);
+            const bottomLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            bottomLight.position.set(0, -300, 150);
+            scene.add(bottomLight);
+
+            // Ground Plane setup
             const planeGeometry = new THREE.PlaneGeometry(GRID_SIZE_CM * 2, GRID_SIZE_CM * 2);
-            const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xDCFCE7, side: THREE.DoubleSide });
+            const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xF0FFF0, side: THREE.DoubleSide });
             groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
             groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.y = -0.1;
             groundPlane.receiveShadow = true; groundPlane.userData.isGround = true;
             scene.add(groundPlane); objectsToRaycast.push(groundPlane);
-            axesHelper = new THREE.AxesHelper(50); axesHelper.position.set(0, 0.1, 0); scene.add(axesHelper);
+
+            // Grid Helper setup
+            gridHelper = new THREE.GridHelper(GRID_SIZE_CM, GRID_SIZE_CM / GRID_STEP_CM, 0x666666, 0xaaaaaa);
+            gridHelper.position.y = 0; gridHelper.visible = false; scene.add(gridHelper);
+
+            // Axes Helper setup
+            axesHelper = new THREE.AxesHelper(50); axesHelper.position.set(0, 0.1, 0);
+            axesHelper.material.linewidth = 2; scene.add(axesHelper);
+
+            // Raycaster and Pointer setup
             raycaster = new THREE.Raycaster(); pointer = new THREE.Vector2();
+
+            // Ghost Element setup
             const ghostMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00, opacity: 0.6, transparent: true, depthWrite: false });
             ghostElement = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ghostMaterial);
             ghostElement.visible = false; ghostElement.castShadow = false; scene.add(ghostElement);
+
+            // --- Initial UI Setup ---
             populateElementSelector();
             populateAssiseSelector();
+            handleElementSelectChange(); // Also calls updateHelpBar
+            updateUIToolStates();
             updateInfoText();
-            updateElementCounter();
+            // updateHelpBar(); // Called by handleElementSelectChange
+            updateGhostGeometry();
+            updateCursor();
+
+            // --- Event Listeners ---
             window.addEventListener('resize', onWindowResize);
-            viewportContainer.addEventListener('pointerdown', onPointerDown);
-            viewportContainer.addEventListener('pointermove', onPointerMove);
-            viewportContainer.addEventListener('pointerup', onPointerUp);
-            viewportContainer.addEventListener('pointerleave', onPointerLeave);
-            toolbar.addEventListener('click', handleToolButtonClick);
+            viewportContainer.addEventListener('pointerdown', onPointerDown, false);
+            viewportContainer.addEventListener('pointermove', onPointerMove, false);
+            viewportContainer.addEventListener('pointerup', onPointerUp, false);
+            viewportContainer.addEventListener('contextmenu', (e) => e.preventDefault());
+            toolbar.addEventListener('click', handleToolbarClick);
             elementSelect.addEventListener('change', handleElementSelectChange);
-            fractionSelect.addEventListener('change', handleFractionChange);
-            jointHorizontalInput.addEventListener('change', handleJointThicknessChange);
-            jointVerticalInput.addEventListener('change', handleJointThicknessChange);
-            assiseSelect.addEventListener('change', handleAssiseChange);
-            btnPlaceElement.addEventListener('click', placeElementFromButton); // Connect button
-            customWidthInput.addEventListener('change', () => { if(currentTool === 'add-custom') updateGhostElement(null, true); });
-            customHeightInput.addEventListener('change', () => { if(currentTool === 'add-custom') updateGhostElement(null, true); });
-            customDepthInput.addEventListener('change', () => { if(currentTool === 'add-custom') updateGhostElement(null, true); });
-            contextMenu.addEventListener('click', onContextMenuClick);
-            document.addEventListener('click', (event) => { if (!contextMenu.contains(event.target)) { hideContextMenu(); } });
-            controls.update();
+            jointInput.addEventListener('change', handleJointThicknessChange);
+            customWidthInput.addEventListener('input', updateGhostGeometry);
+            customHeightInput.addEventListener('input', updateGhostGeometry);
+            customDepthInput.addEventListener('input', updateGhostGeometry);
+            customNameInput.addEventListener('input', updateGhostGeometry);
+            window.addEventListener('keydown', handleKeyDown);
+            dpadUp.addEventListener('click', () => moveGhostWithDPad(0, 0, -DPAD_INCREMENT_CM));
+            dpadDown.addEventListener('click', () => moveGhostWithDPad(0, 0, DPAD_INCREMENT_CM));
+            dpadLeft.addEventListener('click', () => moveGhostWithDPad(-DPAD_INCREMENT_CM, 0, 0));
+            dpadRight.addEventListener('click', () => moveGhostWithDPad(DPAD_INCREMENT_CM, 0, 0));
+            placementRotateLeft.addEventListener('click', () => rotateGhost(-ROTATION_INCREMENT));
+            placementRotateRight.addEventListener('click', () => rotateGhost(ROTATION_INCREMENT));
+            dpadUpY.addEventListener('click', () => moveGhostWithDPadY(1));
+            dpadDownY.addEventListener('click', () => moveGhostWithDPadY(-1));
+            placeButton.addEventListener('click', confirmAddPlacement);
+            confirmMoveButton.addEventListener('click', confirmMovePlacement);
+            cancelPlacementButton.addEventListener('click', cancelAddPlacement);
+            cancelMoveButton.addEventListener('click', cancelMovePlacement);
+            ctxRotateButton.addEventListener('click', handleContextMenuRotate);
+            ctxMoveButton.addEventListener('click', handleContextMenuMove);
+            ctxDuplicateButton.addEventListener('click', handleContextMenuDuplicate);
+            ctxDeleteButton.addEventListener('click', handleContextMenuDelete);
+            document.addEventListener('click', handleClickOutsideContextMenu, true);
+            assiseSelect.addEventListener('change', handleAssiseSelectChange);
+            createAssiseButton.addEventListener('click', handleCreateAssise);
+
+            // Start the animation loop
             animate();
+            // console.log("Simulateur initialisé. Hauteur vue initiale: 170cm. Barre d'aide ajoutée."); // Log removed
         }
 
-        // --- Populate Element Dropdown (Unchanged) ---
-        function populateElementSelector() { /* ... */ elementSelect.innerHTML = ''; for (const id in elementTypes) { const type = elementTypes[id]; const option = document.createElement('option'); option.value = id; option.textContent = `${type.name} (${type.dim[0]}x${type.dim[1]}x${type.dim[2]})`; elementSelect.appendChild(option); } elementSelect.value = selectedElementTypeId; }
+        // --- Tool and UI Management ---
+        function setActiveTool(toolName) {
+            if (currentTool === toolName && currentTool !== 'select' && toolName !== 'delete') return;
+            const previousTool = currentTool;
+            if (previousTool === 'add' && addState === 'positioning') cancelAddPlacement();
+            if (previousTool === 'move' && moveState === 'moving') cancelMovePlacement();
+            else originalMovePosition = null;
+            addState = 'idle'; moveState = 'idle'; hideContextMenu();
+            if (toolName === 'delete') { if (selectedElement) deleteSelectedElement(); else console.warn("Clic sur Supprimer mais aucun élément sélectionné."); return; }
+            currentTool = toolName;
+            if (currentTool === 'add' && selectedElement) deselectElement();
+            toolButtons.forEach(button => { button.classList.toggle('active', button.id === `tool-${currentTool}`); });
+            controls.enabled = (currentTool === 'select');
+            ghostElement.visible = (currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving') || (currentTool === 'duplicate' && selectedElement);
+            if (selectedElement) { selectedElement.mesh.visible = !(currentTool === 'move' && moveState === 'moving'); }
+            placementControlsDiv.style.display = (currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving') ? 'flex' : 'none';
+            if (ghostElement.visible) updateGhostGeometry();
+            updateUIToolStates(); updateInfoText(); updateHelpBar(); updateCursor();
+        }
 
-        // --- Populate Assise Selector (Unchanged) ---
-        function populateAssiseSelector() { /* ... */ const currentSelectedValue = assiseSelect.value; assiseSelect.innerHTML = ''; const freeOption = document.createElement('option'); freeOption.value = 'null'; freeOption.textContent = 'Libre'; assiseSelect.appendChild(freeOption); const calculatedAssises = new Map(); for (const id in elementTypes) { const type = elementTypes[id]; if (type.isCourseElement && type.dim && type.dim.length === 3) { const elementHeight = type.dim[2]; const assiseHeight = elementHeight + jointThicknessY; const roundedHeight = Math.round(assiseHeight * 100) / 100; if (!calculatedAssises.has(roundedHeight)) { calculatedAssises.set(roundedHeight, []); } calculatedAssises.get(roundedHeight).push(type.name.split(" ")[0]); } } const allHeights = new Set([...calculatedAssises.keys(), ...customAssiseValues]); const sortedHeights = Array.from(allHeights).sort((a, b) => a - b); sortedHeights.forEach(height => { const option = document.createElement('option'); option.value = height; const elementNames = calculatedAssises.has(height) ? Array.from(new Set(calculatedAssises.get(height))).slice(0, 2).join(', ') : "Perso"; option.textContent = `${height.toFixed(1)} cm (${elementNames})`; assiseSelect.appendChild(option); }); if (assiseSelect.querySelector(`option[value="${currentSelectedValue}"]`)) { assiseSelect.value = currentSelectedValue; } else { assiseSelect.value = 'null'; selectedAssiseConstraint = null; } }
+        /** Updates the enabled/disabled state of UI elements */
+        function updateUIToolStates() {
+            const hasSelection = selectedElement !== null;
+            const isPositioning = currentTool === 'add' && addState === 'positioning';
+            const isMoving = currentTool === 'move' && moveState === 'moving';
+            const isPlacingOrMoving = isPositioning || isMoving;
+            const isExporting = btnExportPdf && btnExportPdf.disabled; // Check if btnExportPdf exists
 
-        // --- Snapping Logic (Unchanged) ---
-        function snapToGroundGrid(value, dimension, jointX) { /* ... */ const moduleSize = dimension + jointX; if (moduleSize <= 0) return value; const snappedStart = Math.round(value / moduleSize) * moduleSize; return snappedStart; }
-        function snapHeight(value, jointY) { /* ... */ const snapIncrement = Math.max(1, jointY); return Math.round(value / snapIncrement) * snapIncrement; }
+            // Tool buttons
+            selectToolButton.disabled = isPlacingOrMoving || isExporting;
+            addToolButton.disabled = isPlacingOrMoving || isExporting;
+            moveToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
+            rotateToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
+            duplicateToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
+            deleteToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
 
-        // --- Get Current Element Dimensions (Unchanged) ---
-        function getCurrentElementDimensions() { /* ... */ let widthCm = 10, depthCm = 10, heightCm = 10; if (currentTool === 'add-custom') { widthCm = parseFloat(customWidthInput.value) || 10; depthCm = parseFloat(customDepthInput.value) || 10; heightCm = parseFloat(customHeightInput.value) || 10; } else if (currentTool === 'add-list') { const type = elementTypes[selectedElementTypeId]; if (type && type.dim) { [widthCm, depthCm, heightCm] = type.dim; if (widthCm === TARGET_BRICK_WIDTH) { switch (selectedFraction) { case '0.75': widthCm = 14; break; case '0.5': widthCm = 9; break; case '0.25': widthCm = 4; break; } } else if (widthCm === TARGET_BLOCK_WIDTH) { switch (selectedFraction) { case '0.75': widthCm = 27; break; case '0.5': widthCm = 19; break; case '0.25': widthCm = 9; break; } } } } return [widthCm, depthCm, heightCm]; }
+            // Input fields and selects
+            const manipulationActive = (currentTool === 'duplicate') && hasSelection;
+            const disableInputs = manipulationActive || isPlacingOrMoving || isExporting;
 
-        // --- Raycasting and Ghost Logic (Snap-to-Assise - Unchanged) ---
-        function updateGhostElement(event, forceUpdate = false) { /* ... */ if (event) { lastPointerEvent = event; } else if (lastPointerEvent && forceUpdate) { event = lastPointerEvent; } else { if (currentTool === 'add-list' || currentTool === 'add-custom') ghostElement.visible = false; updatePlaceButtonState(); return; } if (currentTool !== 'add-list' && currentTool !== 'add-custom') { ghostElement.visible = false; updatePlaceButtonState(); return; } const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const intersects = raycaster.intersectObjects(objectsToRaycast, false); let showGhost = false; if (intersects.length > 0) { const intersection = intersects[0]; const point = intersection.point; const face = intersection.face; const object = intersection.object; const [widthCm, depthCm, heightCm] = getCurrentElementDimensions(); const boxWidth = widthCm; const boxHeight = heightCm; const boxDepth = depthCm; let snappedY; if (selectedAssiseConstraint !== null) { snappedY = Math.round(point.y / selectedAssiseConstraint) * selectedAssiseConstraint; snappedY = Math.max(0, snappedY); showGhost = true; } else { let freeBaseY = 0; if (object && !object.userData.isGround && object.geometry.parameters) { freeBaseY = object.position.y + object.geometry.parameters.height / 2; } if (object && !object.userData.isGround) { freeBaseY += jointThicknessY; } snappedY = snapHeight(freeBaseY, jointThicknessY); showGhost = true; } if (showGhost) { const normalOffset = face.normal.clone().multiplyScalar(0.1); const targetPoint = point.clone().add(normalOffset); let snappedX = snapToGroundGrid(targetPoint.x, boxWidth, jointThicknessX); let snappedZ = snapToGroundGrid(targetPoint.z, boxDepth, jointThicknessX); const geomParams = ghostElement.geometry.parameters; if (!geomParams || geomParams.width !== boxWidth || geomParams.height !== boxHeight || geomParams.depth !== boxDepth) { ghostElement.geometry.dispose(); ghostElement.geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth); } ghostElement.position.set(snappedX + boxWidth / 2, snappedY + boxHeight / 2, snappedZ + boxDepth / 2); ghostElement.rotation.y = ghostElementRotationY; } } ghostElement.visible = showGhost; updatePlaceButtonState(); }
+            elementSelect.disabled = disableInputs;
+            jointInput.disabled = disableInputs;
+            assiseSelect.disabled = disableInputs;
+            createAssiseButton.disabled = disableInputs;
 
-        // --- Add Element Logic (Unchanged) ---
-        function addElement() { /* ... */ if (!ghostElement.visible) return; const [widthCm, depthCm, heightCm] = getCurrentElementDimensions(); const boxWidth = widthCm; const boxHeight = heightCm; const boxDepth = depthCm; const type = (currentTool === 'add-custom') ? null : elementTypes[selectedElementTypeId]; const originalColor = (currentTool === 'add-custom') ? CUSTOM_ELEMENT_COLOR : (type?.color ?? 0xcccccc); const displayColor = (colorMode === 'white') ? WHITE_COLOR : originalColor; const currentTypeId = (currentTool === 'add-custom') ? CUSTOM_ELEMENT_ID : selectedElementTypeId; const customName = (currentTool === 'add-custom') ? customNameInput.value.trim() || "Perso" : null; const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth); const material = new THREE.MeshStandardMaterial({ color: displayColor, roughness: 0.8, metalness: 0.1 }); const newMesh = new THREE.Mesh(geometry, material); newMesh.position.copy(ghostElement.position); newMesh.rotation.y = ghostElementRotationY; newMesh.castShadow = true; newMesh.receiveShadow = true; scene.add(newMesh); const edgesGeometry = new THREE.EdgesGeometry(geometry); const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x000000, depthTest: true }); const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial); edges.position.copy(newMesh.position); edges.rotation.y = ghostElementRotationY; scene.add(edges); const elementData = { id: nextElementId++, typeId: currentTypeId, mesh: newMesh, edges: edges, customName: customName, originalColor: originalColor }; placedElements.push(elementData); objectsToRaycast.push(newMesh); updateElementCounter(); }
+            // Custom element group
+            const disableCustomGroup = disableInputs || (currentTool === 'add' && selectedElementTypeId !== CUSTOM_ELEMENT_ID);
+            customElementGroup.style.pointerEvents = disableCustomGroup ? 'none' : 'auto';
+            customElementGroup.style.opacity = disableCustomGroup ? 0.5 : 1;
+            customNameInput.disabled = disableCustomGroup;
+            customWidthInput.disabled = disableCustomGroup;
+            customHeightInput.disabled = disableCustomGroup;
+            customDepthInput.disabled = disableCustomGroup;
 
-        // --- Place Element from Button (Unchanged) ---
-        function placeElementFromButton() { if (currentTool === 'add-list' || currentTool === 'add-custom') { addElement(); } }
+            // Placement control buttons visibility
+            placeButton.style.display = isPositioning ? 'flex' : 'none';
+            cancelPlacementButton.style.display = isPositioning ? 'flex' : 'none';
+            confirmMoveButton.style.display = isMoving ? 'flex' : 'none';
+            cancelMoveButton.style.display = isMoving ? 'flex' : 'none';
 
-        // --- Update Place Button State (Unchanged) ---
-        function updatePlaceButtonState() { const showButton = (currentTool === 'add-list' || currentTool === 'add-custom'); btnPlaceElement.style.display = showButton ? 'block' : 'none'; btnPlaceElement.disabled = !ghostElement.visible; }
+            // View and Export buttons
+            btnViewFront.disabled = isPlacingOrMoving || isExporting;
+            btnViewBack.disabled = isPlacingOrMoving || isExporting;
+            btnViewLeft.disabled = isPlacingOrMoving || isExporting;
+            btnViewRight.disabled = isPlacingOrMoving || isExporting;
+            btnViewTop.disabled = isPlacingOrMoving || isExporting;
+            btnViewBottom.disabled = isPlacingOrMoving || isExporting;
+            btnViewIso.disabled = isPlacingOrMoving || isExporting;
+        }
 
-        // --- Update Element Counter (Unchanged) ---
-        function updateElementCounter() { elementCounterElement.textContent = `Éléments: ${placedElements.length}`; }
+        function updateCursor() { viewportContainer.classList.remove('crosshair-cursor', 'pointer-cursor'); if ((currentTool === 'add' && addState === 'idle') || (currentTool === 'move' && moveState === 'idle' && selectedElement) || currentTool === 'duplicate' && selectedElement) { viewportContainer.classList.add('crosshair-cursor'); } else if (currentTool === 'select') { viewportContainer.classList.add('pointer-cursor'); } else { viewportContainer.style.cursor = 'default'; } }
+        function handleToolbarClick(event) { const button = event.target.closest('button'); if (!button || button.disabled) return; const buttonId = button.id; if (buttonId.startsWith('btn-view-')) { const viewType = buttonId.substring(9); setView(viewType); return; } if (buttonId === 'btn-export-pdf') { exportToPDF(); return; } if (buttonId === 'btn-create-assise') { handleCreateAssise(); return; } if (buttonId.startsWith('tool-')) { const toolName = buttonId.substring(5); if (toolName === 'rotate') { if (selectedElement) rotateSelectedElement(); else console.warn("Clic sur Rotation mais aucun élément sélectionné."); } else if (toolName === 'delete') { setActiveTool('delete'); } else if (toolName === 'move') { if (selectedElement) triggerMove(); else console.warn("Clic sur Déplacer mais aucun élément sélectionné."); } else if (toolName === 'duplicate') { if (selectedElement) triggerDuplicate(); else console.warn("Clic sur Dupliquer mais aucun élément sélectionné."); } else { setActiveTool(toolName); } } }
+
+        // --- Help Bar ---
+        /** Updates the content of the help bar based on the current context */
+        function updateHelpBar() {
+            let helpHTML = "";
+            const kbd = (key) => `<kbd>${key}</kbd>`; // Helper to format keys
+
+            switch (currentTool) {
+                case 'select':
+                    if (selectedElement) {
+                        helpHTML = `Sélection: ${kbd('M')} Déplacer | ${kbd('R')} Rotation | ${kbd('D')} Dupliquer | ${kbd('Suppr')} Supprimer | ${kbd('Échap')} Désélectionner | Clic long: Menu`;
+                    } else {
+                        helpHTML = `Navigation: Clic/Glisser: Orbiter | Molette: Zoom | Clic: Sélectionner | Clic long: Menu | ${kbd('S')} Sélection`;
+                    }
+                    break;
+                case 'add':
+                    if (addState === 'positioning') {
+                        helpHTML = `Positionnement: Flèches/ ${kbd('PgUp')}/${kbd('PgDn')}: Ajuster | ${kbd('Q')}/${kbd('E')}: Rotation | ${kbd('Entrée')}: Placer | ${kbd('Échap')}: Annuler`;
+                    } else {
+                        helpHTML = `Ajouter: Clic/Taper: Démarrer positionnement | ${kbd('A')} Ajouter`;
+                    }
+                    break;
+                case 'move':
+                    if (moveState === 'moving') {
+                        helpHTML = `Déplacement: Flèches/ ${kbd('PgUp')}/${kbd('PgDn')}: Ajuster | ${kbd('Q')}/${kbd('E')}: Rotation | ${kbd('Entrée')}: Confirmer | ${kbd('Échap')}: Annuler`;
+                    } else {
+                        helpHTML = `Déplacer: Sélectionnez un élément puis ${kbd('M')} ou Menu contextuel | ${kbd('M')} Déplacer`;
+                    }
+                    break;
+                case 'duplicate':
+                     helpHTML = `Dupliquer: Clic/Taper: Placer la copie | ${kbd('Échap')}: Annuler | ${kbd('D')} Dupliquer`;
+                     break;
+                default:
+                    helpHTML = "Barre d'aide";
+            }
+            helpBar.innerHTML = helpHTML;
+        }
+
+
+        // --- Helper: Calculate Scene Bounding Box ---
+        function calculateSceneBoundingBox() { const box = new THREE.Box3(); if (placedElements.length === 0) { return box; } placedElements.forEach(element => { element.mesh.updateMatrixWorld(true); box.expandByObject(element.mesh); }); if (box.isEmpty()) { } return box; }
+
+        // --- Camera View Functions ---
+        function setView(viewType) { if (!controls) return; controls.enabled = false; const boundingBox = calculateSceneBoundingBox(); const center = new THREE.Vector3(); const size = new THREE.Vector3(); if (!boundingBox.isEmpty()) { boundingBox.getCenter(center); boundingBox.getSize(size); } else { center.copy(lastPerspectiveCameraState ? lastPerspectiveCameraState.target : initialCameraPosition); size.set(MIN_VIEW_SIZE, MIN_VIEW_SIZE, MIN_VIEW_SIZE); /* console.log("Aucun objet placé, utilisation de la vue par défaut."); */ } size.x = Math.max(size.x, MIN_VIEW_SIZE); size.y = Math.max(size.y, MIN_VIEW_SIZE); size.z = Math.max(size.z, MIN_VIEW_SIZE); let requiredSize = 0; const aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; /* console.log(`Réglage vue: ${viewType}, Centre BBox: ${center.x.toFixed(1)},${center.y.toFixed(1)},${center.z.toFixed(1)}`); */ let position = new THREE.Vector3(); let up = new THREE.Vector3(0, 1, 0); switch (viewType) { case 'front': requiredSize = Math.max(size.x / aspect, size.y); position.set(center.x, center.y, center.z + requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR); up.set(0, 1, 0); break; case 'back': requiredSize = Math.max(size.x / aspect, size.y); position.set(center.x, center.y, center.z - requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR); up.set(0, 1, 0); break; case 'left': requiredSize = Math.max(size.z / aspect, size.y); position.set(center.x - requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.y, center.z); up.set(0, 1, 0); break; case 'right': requiredSize = Math.max(size.z / aspect, size.y); position.set(center.x + requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.y, center.z); up.set(0, 1, 0); break; case 'top': requiredSize = Math.max(size.x / aspect, size.z); position.set(center.x, center.y + requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.z); up.set(0, 0, -1); break; case 'bottom': requiredSize = Math.max(size.x / aspect, size.z); position.set(center.x, center.y - requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.z); up.set(0, 0, 1); break; case 'iso': default: if (lastPerspectiveCameraState) { position.copy(lastPerspectiveCameraState.position); center.copy(lastPerspectiveCameraState.target); up.set(0, 1, 0); controls.enabled = true; } else { position.copy(initialCameraPosition); center.copy(initialCameraPosition); up.set(0, 1, 0); controls.enabled = true; } break; } camera.position.copy(position); camera.up.copy(up); camera.lookAt(center); controls.target.copy(center); controls.update(); }
+
+        // --- PDF Export Function ---
+        async function exportToPDF() { if (!jsPDF) { console.error("jsPDF library is not loaded!"); alert("Erreur : La bibliothèque d'exportation PDF n'a pas pu être chargée."); return; } console.log("Début de l'exportation PDF Ortho+3D..."); btnExportPdf.disabled = true; btnExportPdf.textContent = "Exportation..."; updateInfoText(); const currentControlsTarget = controls.target.clone(); const currentCameraState = { position: camera.position.clone(), rotation: camera.rotation.clone(), up: camera.up.clone(), fov: camera.fov, aspect: camera.aspect, near: camera.near, far: camera.far, zoom: camera.zoom }; const controlsWereEnabled = controls.enabled; controls.enabled = false; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const viewsToExport = [ { type: 'front', title: 'Vue de Face (Orthogonale)', ortho: true }, { type: 'back', title: 'Vue Arrière (Orthogonale)', ortho: true }, { type: 'left', title: 'Vue de Gauche (Orthogonale)', ortho: true }, { type: 'right', title: 'Vue de Droite (Orthogonale)', ortho: true }, { type: 'top', title: 'Vue de Dessus (Orthogonale)', ortho: true }, { type: 'iso', title: 'Vue Isométrique (Perspective)', ortho: false } ]; const a4WidthMm = 210; const a4HeightMm = 297; const marginMm = 15; const usableWidthMm = a4WidthMm - 2 * marginMm; const usableHeightMm = a4HeightMm - 2 * marginMm - 15; const boundingBox = calculateSceneBoundingBox(); const center = new THREE.Vector3(); const size = new THREE.Vector3(); let hasObjects = !boundingBox.isEmpty(); if (hasObjects) { boundingBox.getCenter(center); boundingBox.getSize(size); } else { center.set(0, MIN_VIEW_SIZE * 0.5, 0); size.set(MIN_VIEW_SIZE, MIN_VIEW_SIZE, MIN_VIEW_SIZE); console.warn("Export PDF: Aucun objet à exporter, utilisation de la zone par défaut."); } size.x = Math.max(size.x, MIN_VIEW_SIZE * 0.5); size.y = Math.max(size.y, MIN_VIEW_SIZE * 0.5); size.z = Math.max(size.z, MIN_VIEW_SIZE * 0.5); const orthoNear = 0.1; const orthoFar = GRID_SIZE_CM * 5; const orthoCamera = new THREE.OrthographicCamera( -1, 1, 1, -1, orthoNear, orthoFar ); try { for (let i = 0; i < viewsToExport.length; i++) { const view = viewsToExport[i]; /* console.log(` - Préparation vue PDF: ${view.title}`); */ if (i > 0) { doc.addPage(); } let renderCamera; if (view.ortho) { renderCamera = orthoCamera; const aspect = usableWidthMm / usableHeightMm; let halfWidth, halfHeight; switch (view.type) { case 'front': case 'back': halfWidth = Math.max(size.x, size.y * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x, center.y, center.z + (view.type === 'front' ? size.z + orthoFar * 0.5 : -size.z - orthoFar * 0.5)); orthoCamera.up.set(0, 1, 0); break; case 'left': case 'right': halfWidth = Math.max(size.z, size.y * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x + (view.type === 'left' ? -size.x - orthoFar * 0.5 : size.x + orthoFar * 0.5), center.y, center.z); orthoCamera.up.set(0, 1, 0); break; case 'top': case 'bottom': halfWidth = Math.max(size.x, size.z * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x, center.y + (view.type === 'top' ? size.y + orthoFar * 0.5 : -size.y - orthoFar * 0.5), center.z); orthoCamera.up.set(0, 0, view.type === 'top' ? -1 : 1); break; } orthoCamera.left = -halfWidth; orthoCamera.right = halfWidth; orthoCamera.top = halfHeight; orthoCamera.bottom = -halfHeight; orthoCamera.lookAt(center); orthoCamera.updateProjectionMatrix(); } else { renderCamera = camera; if (lastPerspectiveCameraState) { camera.position.copy(lastPerspectiveCameraState.position); camera.lookAt(lastPerspectiveCameraState.target); camera.up.set(0, 1, 0); } else { camera.position.copy(initialCameraPosition); camera.lookAt(initialCameraPosition); camera.up.set(0, 1, 0); } camera.updateProjectionMatrix(); } await new Promise(resolve => setTimeout(resolve, 60)); renderer.render(scene, renderCamera); const imageDataUrl = renderer.domElement.toDataURL('image/png'); doc.setFontSize(12); doc.text(view.title, marginMm, marginMm + 5); const canvasAspect = renderer.domElement.width / renderer.domElement.height; let imgWidthMm = usableWidthMm; let imgHeightMm = imgWidthMm / canvasAspect; if (imgHeightMm > usableHeightMm) { imgHeightMm = usableHeightMm; imgWidthMm = imgHeightMm * canvasAspect; } const imgX = marginMm + (usableWidthMm - imgWidthMm) / 2; const imgY = marginMm + 15; doc.addImage(imageDataUrl, 'PNG', imgX, imgY, imgWidthMm, imgHeightMm); /* console.log(`   * Vue ${view.title} ajoutée au PDF.`); */ } doc.save('mur_simulateur_vues_ortho.pdf'); console.log("Exportation PDF Ortho+3D terminée."); alert("Exportation PDF terminée : mur_simulateur_vues_ortho.pdf"); } catch (error) { console.error("Erreur lors de la génération du PDF:", error); alert("Une erreur s'est produite lors de la génération du PDF."); } finally { camera.position.copy(currentCameraState.position); camera.rotation.copy(currentCameraState.rotation); camera.up.copy(currentCameraState.up); camera.fov = currentCameraState.fov; camera.aspect = currentCameraState.aspect; camera.near = currentCameraState.near; camera.far = currentCameraState.far; camera.zoom = currentCameraState.zoom; camera.updateProjectionMatrix(); controls.target.copy(currentControlsTarget); controls.enabled = controlsWereEnabled; controls.update(); btnExportPdf.disabled = false; btnExportPdf.innerHTML = '<span class="icon-pdf"></span>Exporter PDF'; updateUIToolStates(); updateInfoText(); renderer.render(scene, camera); } }
+
+        // --- Assise Management ---
+        function populateAssiseSelector() { const currentVal = assiseSelect.value; assiseSelect.innerHTML = ''; assises.forEach(assise => { const option = document.createElement('option'); option.value = assise.id; option.textContent = assise.name + (assise.height !== null ? ` (${assise.height.toFixed(1)} cm)` : ''); assiseSelect.appendChild(option); }); if (assises.some(a => a.id === currentVal)) { assiseSelect.value = currentVal; } else { assiseSelect.value = activeAssiseId; } }
+        function handleCreateAssise() { const selectedType = getElementTypeForAdd(); if (!selectedType) { alert("Veuillez sélectionner un type d'élément valide..."); return; } const [, elemHeight,] = selectedType.dim; if (typeof elemHeight !== 'number' || elemHeight <= 0) { alert("La hauteur de l'élément sélectionné est invalide..."); return; } const currentJoint = parseFloat(jointInput.value) || 0; const assiseHeight = elemHeight + currentJoint; if (assises.some(a => a.height !== null && Math.abs(a.height - assiseHeight) < 0.01)) { alert(`Une assise de hauteur ${assiseHeight.toFixed(1)} cm existe déjà.`); return; } const newAssiseId = `assise-${Date.now()}`; const newAssiseName = `Assise ${assises.filter(a => a.height !== null).length + 1} (${selectedType.name.split(' ')[0]})`; const newAssise = { id: newAssiseId, name: newAssiseName, height: assiseHeight }; assises.push(newAssise); assises.sort((a, b) => { if (a.height === null) return -1; if (b.height === null) return 1; return a.height - b.height; }); populateAssiseSelector(); activeAssiseId = newAssiseId; assiseSelect.value = activeAssiseId; /* console.log("Nouvelle assise créée:", newAssise); */ updateInfoText(); updateHelpBar();}
+        function handleAssiseSelectChange() { activeAssiseId = assiseSelect.value; /* console.log("Assise active changée:", activeAssiseId, getActiveAssiseHeight()); */ updateInfoText(); updateHelpBar();}
+        function getActiveAssiseHeight() { if (activeAssiseId === POSE_LIBRE_ID) return null; const activeAssise = assises.find(a => a.id === activeAssiseId); return activeAssise ? activeAssise.height : null; }
+
+        // --- Selection and Context Menu ---
+        function selectElement(elementData, keepContextMenuOpen = false) { if (!elementData || !elementData.mesh || !elementData.mesh.material) { console.error("Tentative de sélection d'un élément invalide:", elementData); return; } if (selectedElement === elementData) { if (!keepContextMenuOpen) hideContextMenu(); return; } deselectElement(); selectedElement = elementData; if (selectedElement.mesh.material.userData.originalEmissive === undefined) { selectedElement.mesh.material.userData.originalEmissive = selectedElement.mesh.material.emissive.getHex(); } selectedElement.mesh.material.emissive.setHex(SELECTION_COLOR); selectedElement.mesh.material.needsUpdate = true; updateUIToolStates(); updateInfoText(); updateHelpBar(); if (!keepContextMenuOpen) hideContextMenu(); }
+        function deselectElement() { hideContextMenu(); const wasMoving = currentTool === 'move' && moveState === 'moving'; if (selectedElement && selectedElement.mesh && selectedElement.mesh.material) { const originalEmissive = selectedElement.mesh.material.userData.originalEmissive ?? 0x000000; selectedElement.mesh.material.emissive.setHex(originalEmissive); selectedElement.mesh.material.needsUpdate = true; if (wasMoving && originalMovePosition) { /* console.log("Annulation déplacement par désélection."); */ selectedElement.mesh.position.copy(originalMovePosition); selectedElement.mesh.visible = true; } } selectedElement = null; originalMovePosition = null; updateUIToolStates(); updateInfoText(); updateHelpBar(); if (wasMoving) { moveState = 'idle'; placementControlsDiv.style.display = 'none'; setActiveTool('select'); } }
+        function showContextMenu(event, elementData) { elementForContextMenu = elementData; selectElement(elementData, true); const menuWidth = contextMenu.offsetWidth; const menuHeight = contextMenu.offsetHeight; const viewportWidth = viewportContainer.clientWidth; const viewportHeight = viewportContainer.clientHeight; let top = event.clientY; let left = event.clientX; if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10; if (top + menuHeight > viewportHeight - 10) top = viewportHeight - menuHeight - 10; if (left < 10) left = 10; if (top < 10) top = 10; contextMenu.style.left = `${left}px`; contextMenu.style.top = `${top}px`; contextMenu.style.display = 'flex'; }
+        function hideContextMenu() { if (contextMenu.style.display !== 'none') { contextMenu.style.display = 'none'; elementForContextMenu = null; } }
+        function handleClickOutsideContextMenu(event) { if (contextMenu.style.display === 'flex' && !contextMenu.contains(event.target)) { const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length === 0 || !elementForContextMenu || intersects[0].object !== elementForContextMenu.mesh) { hideContextMenu(); } } }
+        function handleContextMenuRotate() { if (elementForContextMenu) { if (selectedElement !== elementForContextMenu) selectElement(elementForContextMenu); rotateSelectedElement(); } hideContextMenu(); }
+        function handleContextMenuMove() { if (elementForContextMenu) { if (selectedElement !== elementForContextMenu) selectElement(elementForContextMenu); triggerMove(); } hideContextMenu(); }
+        function handleContextMenuDuplicate() { if (elementForContextMenu) { if (selectedElement !== elementForContextMenu) selectElement(elementForContextMenu); triggerDuplicate(); } hideContextMenu(); }
+        function handleContextMenuDelete() { if (elementForContextMenu) { if (selectedElement !== elementForContextMenu) selectElement(elementForContextMenu); deleteSelectedElement(); } hideContextMenu(); }
+
+        // --- Element Data and Geometry ---
+        function populateElementSelector() { elementSelect.innerHTML = ''; const customOption = document.createElement('option'); customOption.value = CUSTOM_ELEMENT_ID; customOption.textContent = "[ Élément Personnalisé ]"; elementSelect.appendChild(customOption); for (const id in elementTypes) { const type = elementTypes[id]; const [w, h, d] = type.dim; const option = document.createElement('option'); option.value = id; option.textContent = `${type.name} (${w} x ${h} x ${d} cm)`; elementSelect.appendChild(option); } const firstPredefinedId = Object.keys(elementTypes)[0]; if (firstPredefinedId) { selectedElementTypeId = firstPredefinedId; elementSelect.value = selectedElementTypeId; } else { selectedElementTypeId = CUSTOM_ELEMENT_ID; elementSelect.value = selectedElementTypeId; } }
+        function getElementTypeForAdd() { if (selectedElementTypeId === CUSTOM_ELEMENT_ID) { const w = parseFloat(customWidthInput.value); const h = parseFloat(customHeightInput.value); const d = parseFloat(customDepthInput.value); const name = customNameInput.value.trim() || "Personnalisé"; if (isNaN(w) || w <= 0 || isNaN(h) || h <= 0 || isNaN(d) || d <= 0) { console.warn("Dimensions personnalisées invalides."); alert("Les dimensions personnalisées (L, H, P) doivent être des nombres positifs."); return null; } return { name: name, dim: [w, h, d], color: DEFAULT_CUSTOM_COLOR, isCustom: true }; } else { const type = elementTypes[selectedElementTypeId]; if (!type) { console.error(`Type d'élément sélectionné introuvable: ${selectedElementTypeId}`); return null; } return { ...type, isCustom: false }; } }
+        function getElementTypeForSelected() { if (!selectedElement) return null; if (selectedElement.typeId === CUSTOM_ELEMENT_ID) { if (!selectedElement.customDimensions) { console.error("Données de dimensions personnalisées manquantes...", selectedElement.id); return null; } return { name: selectedElement.customName || "Personnalisé", dim: selectedElement.customDimensions, color: DEFAULT_CUSTOM_COLOR, isCustom: true, originalTypeId: selectedElement.typeId }; } else { const type = elementTypes[selectedElement.typeId]; if (!type) { console.error(`Type d'élément prédéfini introuvable...: ${selectedElement.typeId}`); return null; } return { ...type, isCustom: false, originalTypeId: selectedElement.typeId }; } }
+        function updateGhostGeometry() { let elementType = null; if (currentTool === 'add') elementType = getElementTypeForAdd(); else if ((currentTool === 'move' || currentTool === 'duplicate') && selectedElement) elementType = getElementTypeForSelected(); else { ghostElement.visible = false; return; } if (!elementType) { ghostElement.visible = false; return; }; const [widthCm, heightCm, depthCm] = elementType.dim; if (!ghostElement.geometry || Math.abs(ghostElement.geometry.parameters.width - widthCm) > 0.01 || Math.abs(ghostElement.geometry.parameters.height - heightCm) > 0.01 || Math.abs(ghostElement.geometry.parameters.depth - depthCm) > 0.01) { if (ghostElement.geometry) ghostElement.geometry.dispose(); ghostElement.geometry = new THREE.BoxGeometry(widthCm, heightCm, depthCm); } if ((currentTool === 'move' || currentTool === 'duplicate') && selectedElement && selectedElement.mesh.material) ghostElement.material.color.copy(selectedElement.mesh.material.color); else ghostElement.material.color.setHex(0x00ff00); ghostElement.material.needsUpdate = true; if ((currentTool === 'move' || currentTool === 'duplicate') && selectedElement) ghostElement.rotation.copy(selectedElement.mesh.rotation); else if (currentTool === 'add') { if (addState === 'idle') ghostElement.rotation.set(0, 0, 0); } }
+
+        // --- Snapping Logic ---
+        function snapToGridXZ(value, dimension, joint) { const snapIncrement = Math.max(0.1, joint > 0 ? joint : 1.0); const snappedCenter = Math.round(value / snapIncrement) * snapIncrement; return snappedCenter; }
+        function snapVerticalPosition(targetBottomY, elementHeight) { const activeAssiseH = getActiveAssiseHeight(); if (activeAssiseH === null || activeAssiseH <= 0) return Math.max(0, targetBottomY); const snappedBottomY = Math.round(targetBottomY / activeAssiseH) * activeAssiseH; return Math.max(0, snappedBottomY); }
+
+        // --- Raycasting and Ghost Positioning ---
+        function calculateSnappedPosition(intersection) { if (!intersection || !ghostElement.geometry || !ghostElement.geometry.parameters) return null; const point = intersection.point; const object = intersection.object; const { width: ghostWidth, height: ghostHeight, depth: ghostDepth } = ghostElement.geometry.parameters; let topYBelow = 0; if (object && !object.userData.isGround && object.geometry && object.geometry.parameters) topYBelow = object.position.y + object.geometry.parameters.height / 2; const potentialBottomY = topYBelow + jointThicknessCm; const snappedBottomY = snapVerticalPosition(potentialBottomY, ghostHeight); const targetCenterY = snappedBottomY + ghostHeight / 2; const targetPoint = point.clone(); const snappedCenterX = snapToGridXZ(targetPoint.x, ghostWidth, jointThicknessCm); const snappedCenterZ = snapToGridXZ(targetPoint.z, ghostDepth, jointThicknessCm); return new THREE.Vector3(snappedCenterX, targetCenterY, snappedCenterZ); }
+        function updateGhostPosition(event) { if (!((currentTool === 'add' && addState === 'idle') || (currentTool === 'move' && moveState === 'moving') || (currentTool === 'duplicate' && selectedElement))) { if (ghostElement.visible) ghostElement.visible = false; return; } const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const activeObjectsToRaycast = objectsToRaycast.filter(obj => !selectedElement || obj !== selectedElement.mesh || currentTool !== 'move'); const intersects = raycaster.intersectObjects(activeObjectsToRaycast, false); if (intersects.length > 0) { const snappedPosition = calculateSnappedPosition(intersects[0]); if (snappedPosition) { ghostElement.position.copy(snappedPosition); if (!ghostElement.visible) ghostElement.visible = true; } else { if (ghostElement.visible) ghostElement.visible = false; } } else { if (ghostElement.visible) ghostElement.visible = false; } }
+
+        // --- Element Actions (Place, Rotate, Delete, Move, Duplicate) ---
+        function placeElement(elementType, position, rotation) { if (!elementType || !elementType.dim || elementType.dim.length !== 3) { console.error("placeElement: Type d'élément invalide...", elementType); return null; } const [widthCm, heightCm, depthCm] = elementType.dim; const geometry = new THREE.BoxGeometry(widthCm, heightCm, depthCm); const material = new THREE.MeshStandardMaterial({ color: elementType.color || DEFAULT_CUSTOM_COLOR, roughness: 0.8, metalness: 0.1, emissive: 0x000000 }); material.userData.originalEmissive = 0x000000; const mesh = new THREE.Mesh(geometry, material); mesh.position.copy(position); if (rotation) mesh.rotation.copy(rotation); mesh.castShadow = true; mesh.receiveShadow = true; let storedTypeId = CUSTOM_ELEMENT_ID; if (!elementType.isCustom) { const foundId = Object.keys(elementTypes).find(key => elementTypes[key].name === elementType.name && elementTypes[key].dim.every((dim, i) => Math.abs(dim - elementType.dim[i]) < 0.01)); storedTypeId = foundId || elementType.originalTypeId || selectedElementTypeId; if (!foundId && elementType.originalTypeId !== CUSTOM_ELEMENT_ID) console.warn(`Could not find original ID for ${elementType.name}, using fallback: ${storedTypeId}`); } const elementData = { id: nextElementId++, typeId: storedTypeId, mesh: mesh, ...(elementType.isCustom && { customDimensions: [...elementType.dim], customName: elementType.name }) }; placedElements.push(elementData); scene.add(mesh); objectsToRaycast.push(mesh); /* console.log(`Élément placé: ID=${elementData.id}, TypeID=${elementData.typeId}, Total=${placedElements.length}`); */ return elementData; }
+        function rotateSelectedElement() { if (!selectedElement) { console.warn("Rotation annulée: aucun élément sélectionné."); return; } /* console.log(`Rotation sélection ${selectedElement.id}...`); */ selectedElement.mesh.rotateY(ROTATION_INCREMENT); if (ghostElement.visible && (currentTool === 'move' || currentTool === 'duplicate')) ghostElement.rotation.copy(selectedElement.mesh.rotation); }
+        function deleteSelectedElement() { if (!selectedElement) { console.warn("Suppression annulée: aucun élément sélectionné."); return; } const elementToDelete = selectedElement; const deletedId = elementToDelete.id; /* console.log(`Suppression élément ${deletedId}`); */ scene.remove(elementToDelete.mesh); const raycastIndex = objectsToRaycast.indexOf(elementToDelete.mesh); if (raycastIndex > -1) objectsToRaycast.splice(raycastIndex, 1); else console.warn(`Mesh ${deletedId} non trouvé dans objectsToRaycast.`); const placedIndex = placedElements.findIndex(el => el.id === deletedId); if (placedIndex > -1) placedElements.splice(placedIndex, 1); else console.warn(`Data ${deletedId} non trouvé dans placedElements.`); if (elementToDelete.mesh.geometry) elementToDelete.mesh.geometry.dispose(); if (elementToDelete.mesh.material) elementToDelete.mesh.material.dispose(); selectedElement = null; originalMovePosition = null; updateUIToolStates(); updateInfoText(); updateHelpBar(); /* console.log(`Élément ${deletedId} supprimé. Total restant: ${placedElements.length}`); */ }
+        function triggerMove() { if (!selectedElement) return; /* console.log(`Déclenchement Déplacer pour ${selectedElement.id}`); */ originalMovePosition = selectedElement.mesh.position.clone(); setActiveTool('move'); moveState = 'moving'; updateGhostGeometry(); ghostElement.position.copy(selectedElement.mesh.position); ghostElement.visible = true; selectedElement.mesh.visible = false; placementControlsDiv.style.display = 'flex'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); }
+        function triggerDuplicate() { if (!selectedElement) return; /* console.log(`Déclenchement Dupliquer pour ${selectedElement.id}`); */ setActiveTool('duplicate'); updateGhostGeometry(); ghostElement.position.copy(selectedElement.mesh.position).add(new THREE.Vector3(10, 0, 0)); ghostElement.visible = true; selectedElement.mesh.visible = true; placementControlsDiv.style.display = 'none'; updateUIToolStates(); updateInfoText(); updateCursor(); }
+        function placeDuplicateElement() { if (currentTool !== 'duplicate' || !selectedElement || !ghostElement.visible) { console.warn("placeDuplicateElement appelé dans un état incorrect."); return; } /* console.log(`Placement de la copie de ${selectedElement.id}`); */ const elementType = getElementTypeForSelected(); if (!elementType) { console.error("Impossible d'obtenir le type de l'élément original..."); setActiveTool('select'); return; } const newElement = placeElement(elementType, ghostElement.position, ghostElement.rotation); if (newElement) selectElement(newElement); setActiveTool('select'); }
+
+        // --- DPad Placement/Move Actions ---
+        function moveGhostWithDPad(dx, dy, dz) { if (ghostElement.visible && ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving'))) { ghostElement.position.x += dx; ghostElement.position.y += dy; ghostElement.position.z += dz; } }
+        function moveGhostWithDPadY(direction) { if (ghostElement.visible && ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving'))) { const activeAssiseH = getActiveAssiseHeight(); const { height: ghostHeight } = ghostElement.geometry.parameters; const incrementY = (activeAssiseH !== null && activeAssiseH > 0) ? activeAssiseH : DPAD_INCREMENT_CM; const currentBottomY = ghostElement.position.y - ghostHeight / 2; let newBottomY = currentBottomY + (direction * incrementY); newBottomY = Math.max(0, newBottomY); const snappedBottomY = snapVerticalPosition(newBottomY, ghostHeight); ghostElement.position.y = snappedBottomY + ghostHeight / 2; } }
+        function rotateGhost(angle) { if (ghostElement.visible && ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving'))) ghostElement.rotateY(angle); }
+        function confirmAddPlacement() { if (currentTool === 'add' && addState === 'positioning' && ghostElement.visible) { /* console.log("Confirmation placement ADD."); */ const elementType = getElementTypeForAdd(); if (elementType) { const newElement = placeElement(elementType, ghostElement.position, ghostElement.rotation); if (newElement) { addState = 'idle'; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); return; } } console.error("Échec du placement de l'élément."); cancelAddPlacement(); } }
+        function cancelAddPlacement() { if (currentTool === 'add' && addState === 'positioning') { /* console.log("Annulation placement ADD."); */ addState = 'idle'; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); } }
+        function confirmMovePlacement() { if (currentTool === 'move' && moveState === 'moving' && selectedElement && ghostElement.visible) { /* console.log("Confirmation placement MOVE."); */ selectedElement.mesh.position.copy(ghostElement.position); selectedElement.mesh.rotation.copy(ghostElement.rotation); selectedElement.mesh.visible = true; moveState = 'idle'; originalMovePosition = null; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; setActiveTool('select'); } }
+        function cancelMovePlacement() { if (currentTool === 'move' && moveState === 'moving' && selectedElement) { /* console.log("Annulation placement MOVE."); */ if (originalMovePosition) selectedElement.mesh.position.copy(originalMovePosition); else console.warn("Position originale non disponible..."); selectedElement.mesh.visible = true; moveState = 'idle'; originalMovePosition = null; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; setActiveTool('select'); } }
 
         // --- Event Handlers ---
-        function onWindowResize() { /* ... */ camera.aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight); }
-        function onPointerMove(event) { /* ... */ if (longPressTimer) { const currentPos = { x: event.clientX, y: event.clientY }; const dx = Math.abs(currentPos.x - pointerDownStartPos.x); const dy = Math.abs(currentPos.y - pointerDownStartPos.y); if (dx > LONG_PRESS_MOVE_THRESHOLD || dy > LONG_PRESS_MOVE_THRESHOLD) { clearTimeout(longPressTimer); longPressTimer = null; } } if (currentTool === 'add-list' || currentTool === 'add-custom') { updateGhostElement(event); } else { ghostElement.visible = false; lastPointerEvent = null; updatePlaceButtonState();} }
-        function onPointerDown(event) { /* ... */ if (event.button !== 0 && event.pointerType === 'mouse') return; didLongPress = false; pointerDownStartPos = { x: event.clientX, y: event.clientY }; clearTimeout(longPressTimer); longPressTimer = setTimeout(() => { handleLongPress(event); longPressTimer = null; }, LONG_PRESS_DURATION); }
-        function onPointerUp(event) { /* ... */ clearTimeout(longPressTimer); longPressTimer = null; didLongPress = false; } // Click no longer adds directly
-        function onPointerLeave(event) { /* ... */ clearTimeout(longPressTimer); longPressTimer = null; }
-        function handleLongPress(event) { /* ... */ didLongPress = true; hideContextMenu(); const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const elementMeshes = placedElements.map(el => el.mesh); const intersects = raycaster.intersectObjects(elementMeshes, false); if (intersects.length > 0) { const intersectedMesh = intersects[0].object; const targetElementData = placedElements.find(el => el.mesh === intersectedMesh); if (targetElementData) { contextMenuTarget = targetElementData; showContextMenu(event.clientX, event.clientY); } } }
-        function showContextMenu(x, y) { /* ... */ const rect = viewportContainer.getBoundingClientRect(); contextMenu.style.left = `${x - rect.left}px`; contextMenu.style.top = `${y - rect.top}px`; contextMenu.style.display = 'block'; }
-        function hideContextMenu() { /* ... */ contextMenu.style.display = 'none'; contextMenuTarget = null; }
-        function onContextMenuClick(event) { /* ... */ if (!contextMenuTarget) return; const action = event.target.id; const targetData = contextMenuTarget; switch (action) { case 'ctx-rotate': rotatePlacedElement(targetData, Math.PI / 2); break; case 'ctx-modify': modifyPlacedElement(targetData); break; case 'ctx-move': alert("Fonctionnalité 'Déplacer' non implémentée."); break; case 'ctx-delete': deletePlacedElement(targetData); break; } hideContextMenu(); }
-        function deletePlacedElement(elementData) { /* ... */ if (!elementData) return; scene.remove(elementData.mesh); if (elementData.edges) scene.remove(elementData.edges); elementData.mesh.geometry.dispose(); elementData.mesh.material.dispose(); if (elementData.edges) { elementData.edges.geometry.dispose(); elementData.edges.material.dispose(); } placedElements = placedElements.filter(el => el.id !== elementData.id); const index = objectsToRaycast.indexOf(elementData.mesh); if (index > -1) { objectsToRaycast.splice(index, 1); } updateElementCounter(); }
-        function modifyPlacedElement(elementData) { /* ... */ if (!elementData) return; const mesh = elementData.mesh; const params = mesh.geometry.parameters; customWidthInput.value = params.width; customHeightInput.value = params.height; customDepthInput.value = params.depth; customNameInput.value = elementData.customName || elementData.typeId; deletePlacedElement(elementData); if (currentTool !== 'add-custom') { handleToolButtonClick({ target: addCustomButton }); } else { updateGhostElement(null, true); } alert(`Dimensions chargées. L'élément original a été supprimé. Modifiez si nécessaire et cliquez sur 'Placer'.`); }
-        function rotatePlacedElement(elementData, angleRad) { /* ... */ if (!elementData) return; elementData.mesh.rotation.y += angleRad; if (elementData.edges) { elementData.edges.rotation.y = elementData.mesh.rotation.y; } }
-        function handleToolButtonClick(event) { /* ... */ const button = event.target.closest('button'); if (!button || !button.id) return; const toolId = button.id; let needsInfoUpdate = true; let needsPlaceButtonUpdate = false; if (toolId === 'tool-add' || toolId === 'tool-add-custom') { addListButton.classList.remove('active'); addCustomButton.classList.remove('active'); fractionGroup.classList.remove('visible'); needsPlaceButtonUpdate = true; } switch (toolId) { case 'tool-add': if (currentTool === 'add-list') { currentTool = 'navigate'; controls.enabled = true; ghostElement.visible = false; lastPointerEvent = null; } else { currentTool = 'add-list'; button.classList.add('active'); controls.enabled = false; ghostElementRotationY = 0; updateFractionSelectorVisibility(); updateGhostElement(null, true); } break; case 'tool-add-custom': if (currentTool === 'add-custom') { currentTool = 'navigate'; controls.enabled = true; ghostElement.visible = false; lastPointerEvent = null; } else { currentTool = 'add-custom'; button.classList.add('active'); controls.enabled = false; ghostElementRotationY = 0; updateFractionSelectorVisibility(); updateGhostElement(null, true); } break; case 'btn-export-pdf': exportToPDF(); needsInfoUpdate = false; break; case 'btn-load-dims': loadSelectedDims(); needsInfoUpdate = false; break; case 'btn-rotate-element': if (currentTool === 'add-list' || currentTool === 'add-custom') { rotateGhostElement(); } needsInfoUpdate = false; break; case 'btn-add-assise': addCustomAssise(); needsInfoUpdate = false; break; case 'btn-toggle-color': toggleColorMode(button); needsInfoUpdate = false; break; case 'btn-orbit-left': rotateView(0.1); needsInfoUpdate = false; break; case 'btn-orbit-right': rotateView(-0.1); needsInfoUpdate = false; break; case 'btn-zoom-in': zoomView(0.8); needsInfoUpdate = false; break; case 'btn-zoom-out': zoomView(1.2); needsInfoUpdate = false; break; case 'btn-rotate-scene': toggleSceneRotation(button); needsInfoUpdate = false; break; default: needsInfoUpdate = false; break; } if(needsInfoUpdate) updateInfoText(); if(needsPlaceButtonUpdate) updatePlaceButtonState(); }
-        function updateFractionSelectorVisibility() { /* ... */ const type = elementTypes[selectedElementTypeId]; const showFractions = currentTool === 'add-list' && type && type.dim && (type.dim[0] === TARGET_BRICK_WIDTH || type.dim[0] === TARGET_BLOCK_WIDTH); fractionGroup.classList.toggle('visible', showFractions); if (showFractions) { fractionSelect.value = selectedFraction; } }
-        function handleElementSelectChange(event) { /* ... */ selectedElementTypeId = event.target.value; ghostElementRotationY = 0; selectedFraction = '1'; fractionSelect.value = '1'; updateFractionSelectorVisibility(); if (currentTool === 'add-list') { updateGhostElement(null, true); } updateInfoText(); }
-        function handleFractionChange(event) { /* ... */ selectedFraction = event.target.value; if (currentTool === 'add-list') { updateGhostElement(null, true); } }
-        function handleJointThicknessChange(event) { /* ... */ const isHorizontal = event.target.id === 'joint-horizontal'; const value = parseFloat(event.target.value); if (!isNaN(value) && value >= 0) { if (isHorizontal) { jointThicknessY = value; populateAssiseSelector(); } else { jointThicknessX = value; } if (currentTool === 'add-list' || currentTool === 'add-custom') { updateGhostElement(null, true); } } else { event.target.value = isHorizontal ? jointThicknessY : jointThicknessX; } }
-        function handleAssiseChange(event) { /* ... */ const value = event.target.value; if (value === 'null') { selectedAssiseConstraint = null; } else { selectedAssiseConstraint = parseFloat(value); if (isNaN(selectedAssiseConstraint)) { selectedAssiseConstraint = null; } } if (currentTool === 'add-list' || currentTool === 'add-custom') { updateGhostElement(null, true); } }
-        function updateInfoText() { /* ... */ let modeText = "Navigation"; let rotationText = ""; if (currentTool === 'add-list' || currentTool === 'add-custom') { const rotationDeg = Math.round(THREE.MathUtils.radToDeg(ghostElementRotationY)) % 360; rotationText = ` / Rot: ${rotationDeg}°`; if (currentTool === 'add-list') { const selectedName = elementTypes[selectedElementTypeId]?.name ?? 'Inconnu'; const shortName = selectedName.split(" ")[0]; modeText = `Ajouter Liste (${shortName})`; } else if (currentTool === 'add-custom') { modeText = "Ajouter Perso"; } } infoText.textContent = `Mode: ${modeText}${rotationText}`; }
-        function addCustomAssise() { /* ... */ const value = parseFloat(customAssiseInput.value); if (!isNaN(value) && value > 0) { const roundedValue = Math.round(value * 100) / 100; customAssiseValues.add(roundedValue); populateAssiseSelector(); customAssiseInput.value = ''; assiseSelect.value = roundedValue; handleAssiseChange({ target: assiseSelect }); } else { alert("Veuillez entrer une valeur d'assise numérique positive."); } }
-        function loadSelectedDims() { /* ... */ const type = elementTypes[selectedElementTypeId]; if (type && type.dim) { const [widthCm, depthCm, heightCm] = type.dim; customWidthInput.value = widthCm; customDepthInput.value = depthCm; customHeightInput.value = heightCm; customNameInput.value = type.name; alert(`Dimensions de "${type.name}" chargées dans la section perso.`); } }
-        function toggleColorMode(button) { /* ... */ colorMode = (colorMode === 'color') ? 'white' : 'color'; if (button) { button.classList.toggle('active', colorMode === 'white'); } placedElements.forEach(el => { const displayColor = (colorMode === 'white') ? WHITE_COLOR : el.originalColor; el.mesh.material.color.setHex(displayColor); }); console.log("Color mode:", colorMode); }
+        function onWindowResize() { camera.aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight); }
+        function onPointerDown(event) { if (toolbar.contains(event.target) || placementControlsDiv.contains(event.target) || contextMenu.contains(event.target)) return; const rect = renderer.domElement.getBoundingClientRect(); const isClickInsideViewport = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom; if (!isClickInsideViewport) return; isDragging = false; pointerDownTime = Date.now(); pointerDownCoords = { x: event.clientX, y: event.clientY }; clearTimeout(longPressTimer); hideContextMenu(); if (currentTool === 'select') { pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length > 0) { const elementData = placedElements.find(el => el.mesh === intersects[0].object); if (elementData) { longPressTimer = setTimeout(() => { const distanceMoved = Math.sqrt(Math.pow(event.clientX - pointerDownCoords.x, 2) + Math.pow(event.clientY - pointerDownCoords.y, 2)); if (distanceMoved < DRAG_THRESHOLD_PX) { showContextMenu(event, elementData); pointerDownTime = 0; } }, LONG_PRESS_THRESHOLD); } } } }
+        function onPointerMove(event) { if (event.buttons > 0 && pointerDownTime > 0 && !isDragging) { const distanceMoved = Math.sqrt(Math.pow(event.clientX - pointerDownCoords.x, 2) + Math.pow(event.clientY - pointerDownCoords.y, 2)); if (distanceMoved >= DRAG_THRESHOLD_PX) { isDragging = true; clearTimeout(longPressTimer); hideContextMenu(); } } if (!isDragging) { if ((currentTool === 'add' && addState === 'idle') || (currentTool === 'move' && moveState === 'moving') || (currentTool === 'duplicate' && selectedElement)) updateGhostPosition(event); } }
+        function onPointerUp(event) { clearTimeout(longPressTimer); if (toolbar.contains(event.target) || placementControlsDiv.contains(event.target) || contextMenu.contains(event.target)) { isDragging = false; pointerDownTime = 0; return; } const clickDuration = Date.now() - pointerDownTime; const rect = renderer.domElement.getBoundingClientRect(); const isClickInsideViewport = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom; if (isClickInsideViewport && !isDragging && clickDuration < LONG_PRESS_THRESHOLD && pointerDownTime !== 0) { pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); if (currentTool === 'select') { const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length > 0) { const elementData = placedElements.find(el => el.mesh === intersects[0].object); if (elementData) selectElement(elementData); else { console.warn("Intersection trouvée mais données élément manquantes."); deselectElement(); } } else deselectElement(); } else if (currentTool === 'add') { if (addState === 'idle') { const activeObjectsToRaycast = objectsToRaycast.filter(obj => !selectedElement || obj !== selectedElement.mesh); const intersects = raycaster.intersectObjects(activeObjectsToRaycast, false); if (intersects.length > 0) { const snappedPosition = calculateSnappedPosition(intersects[0]); if (snappedPosition) { addState = 'positioning'; updateGhostGeometry(); ghostElement.position.copy(snappedPosition); ghostElement.visible = true; placementControlsDiv.style.display = 'flex'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); } else console.warn("Clic pour ajouter, mais position calculée invalide."); } else { /* console.log("Clic pour ajouter, mais n'a pas touché une surface valide."); */ } } else if (addState === 'positioning') { /* console.log("Clic ignoré en mode positionnement (utiliser ✅ ou Entrée)."); */ } } else if (currentTool === 'move') { /* console.log("Clic ignoré en mode déplacement (utiliser DPad/✅ ou Entrée)."); */ } else if (currentTool === 'duplicate') { if (selectedElement && ghostElement.visible) placeDuplicateElement(); else setActiveTool('select'); } } isDragging = false; pointerDownTime = 0; }
+        function handleElementSelectChange(event) { selectedElementTypeId = elementSelect.value; customElementGroup.style.display = (selectedElementTypeId === CUSTOM_ELEMENT_ID) ? 'flex' : 'none'; if (currentTool === 'add' && addState === 'idle') { updateGhostGeometry(); ghostElement.visible = false; } updateUIToolStates(); updateInfoText(); updateHelpBar(); }
+        function handleJointThicknessChange(event) { const value = parseFloat(event.target.value); if (!isNaN(value) && value >= 0) { jointThicknessCm = value; /* console.log(`Épaisseur du joint changée à: ${jointThicknessCm} cm`); */ } else event.target.value = jointThicknessCm; }
+        function handleKeyDown(event) { if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return; const key = event.key.toLowerCase(); let helpBarNeedsUpdate = false; if (key === 'escape') { event.preventDefault(); hideContextMenu(); if (currentTool === 'add' && addState === 'positioning') { cancelAddPlacement(); helpBarNeedsUpdate = true; } else if (currentTool === 'move' && moveState === 'moving') { cancelMovePlacement(); helpBarNeedsUpdate = true; } else if (selectedElement) { deselectElement(); helpBarNeedsUpdate = true; } if(helpBarNeedsUpdate) updateHelpBar(); return; } if (key === 'enter') { event.preventDefault(); if (currentTool === 'add' && addState === 'positioning') { confirmAddPlacement(); helpBarNeedsUpdate = true; } else if (currentTool === 'move' && moveState === 'moving') { confirmMovePlacement(); helpBarNeedsUpdate = true; } if(helpBarNeedsUpdate) updateHelpBar(); return; } if (key === 'delete' || key === 'backspace') { if (!deleteToolButton.disabled) { event.preventDefault(); deleteSelectedElement(); helpBarNeedsUpdate = true; } if(helpBarNeedsUpdate) updateHelpBar(); return; } if ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving')) { let handled = true; switch(key) { case 'arrowup': case 'w': moveGhostWithDPad(0, 0, -DPAD_INCREMENT_CM); break; case 'arrowdown': case 's': moveGhostWithDPad(0, 0, DPAD_INCREMENT_CM); break; case 'arrowleft': case 'a': moveGhostWithDPad(-DPAD_INCREMENT_CM, 0, 0); break; case 'arrowright': case 'd': moveGhostWithDPad(DPAD_INCREMENT_CM, 0, 0); break; case 'pageup': moveGhostWithDPadY(1); break; case 'pagedown': moveGhostWithDPadY(-1); break; case 'q': rotateGhost(-ROTATION_INCREMENT); break; case 'e': rotateGhost(ROTATION_INCREMENT); break; default: handled = false; break; } if (handled) { event.preventDefault(); return; } } switch(key) { case 's': if (!selectToolButton.disabled) { setActiveTool('select'); helpBarNeedsUpdate = true; } break; case 'a': if (!addToolButton.disabled) { setActiveTool('add'); helpBarNeedsUpdate = true; } break; case 'm': if (!moveToolButton.disabled) { triggerMove(); helpBarNeedsUpdate = true; } break; case 'r': if (!rotateToolButton.disabled) rotateSelectedElement(); break; case 'd': if (!duplicateToolButton.disabled) { triggerDuplicate(); helpBarNeedsUpdate = true; } break; } if(helpBarNeedsUpdate) updateHelpBar(); }
+        function updateInfoText() { let text = ""; const activeAssise = assises.find(a => a.id === activeAssiseId); const assiseInfo = activeAssise ? ` | Assise: ${activeAssise.name}` + (activeAssise.height !== null ? ` (${activeAssise.height.toFixed(1)} cm)` : '') : ''; switch(currentTool) { case 'select': text = selectedElement ? `Mode: Sélectionné (ID: ${selectedElement.id})` : 'Mode: Sélection / Navigation'; text += " (Clic/Appui long, Glisser: Orbiter)"; break; case 'add': const addType = getElementTypeForAdd(); const addName = addType ? addType.name : "Invalide"; if (addState === 'positioning') text = `Positionnement (${addName}): Ajustez (Flèches/PgUpDn), Rotation (QE), puis Placer (✅/Entrée) ou Annuler (❌/Échap)`; else text = `Mode: Ajouter (${addName}) - Cliquez/Tapez pour positionner`; text += assiseInfo; break; case 'move': if (moveState === 'moving') { const moveName = getElementTypeForSelected()?.name || `ID ${selectedElement?.id}`; text = `Déplacement (${moveName}): Ajustez (Flèches/PgUpDn), Rotation (QE), puis Confirmer (✅/Entrée) ou Annuler (❌/Échap)`; text += assiseInfo; } else text = selectedElement ? `Mode: Déplacer (Prêt pour ID: ${selectedElement.id})` : 'Mode: Déplacer (Sélectionnez d\'abord)'; break; case 'duplicate': const dupName = getElementTypeForSelected()?.name || `ID ${selectedElement?.id}`; text = selectedElement ? `Mode: Dupliquer (${dupName}) - Cliquez/Tapez pour placer copie` : 'Mode: Dupliquer (Sélectionnez d\'abord)'; text += assiseInfo; break; default: text = `Mode: ${currentTool}`; } if (btnExportPdf && btnExportPdf.disabled) text += " | Exportation PDF en cours..."; infoText.textContent = text; }
 
-        // --- PDF Export Function (Unchanged) ---
-        async function exportToPDF() { /* ... */ if (!window.jspdf) { alert("La bibliothèque jsPDF n'est pas chargée."); return; } const { jsPDF } = window.jspdf; const projectTitle = projectTitleInput.value.trim() || "Simulation Mur 3D"; const filename = `${projectTitle}.pdf`; alert(`Début de l'exportation PDF : ${filename}\nCela peut prendre quelques instants...`); const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const pageW = doc.internal.pageSize.getWidth(); const pageH = doc.internal.pageSize.getHeight(); const margin = 10; const imgW = pageW - 2 * margin; const imgH = pageH - 2 * margin - 15; const addViewToPDF = (viewName, cameraInstance) => { console.log(`Rendering view: ${viewName}`); axesHelper.visible = false; const originalBackground = scene.background; scene.background = new THREE.Color(0xffffff); renderer.render(scene, cameraInstance); scene.background = originalBackground; axesHelper.visible = true; const imgData = renderer.domElement.toDataURL('image/png'); doc.addPage(); doc.setFontSize(12); doc.text(viewName, margin, margin + 5); const canvasAspect = renderer.domElement.width / renderer.domElement.height; const imgAspect = imgW / imgH; let drawW, drawH; if (canvasAspect > imgAspect) { drawW = imgW; drawH = imgW / canvasAspect; } else { drawH = imgH; drawW = imgH * canvasAspect; } const drawX = margin + (imgW - drawW) / 2; const drawY = margin + 15 + (imgH - drawH) / 2; doc.addImage(imgData, 'PNG', drawX, drawY, drawW, drawH); }; const box = new THREE.Box3(); if (placedElements.length > 0) { placedElements.forEach(el => box.expandByObject(el.mesh)); } else { box.setFromCenterAndSize(new THREE.Vector3(0, 50, 0), new THREE.Vector3(100, 100, 100)); } const center = box.getCenter(new THREE.Vector3()); const size = box.getSize(new THREE.Vector3()); const maxDim = Math.max(size.x, size.y, size.z); const camDist = maxDim * 1.5; const orthoSize = maxDim / 2 * 1.1; const aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; const orthoCam = new THREE.OrthographicCamera(-orthoSize * aspect, orthoSize * aspect, orthoSize, -orthoSize, 0.1, camDist * 2); orthoCam.position.set(center.x, center.y + camDist, center.z); orthoCam.lookAt(center); orthoCam.up.set(0, 0, -1); addViewToPDF("Vue de Dessus (X-Z)", orthoCam); orthoCam.position.set(center.x, center.y, center.z + camDist); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue de Face (X-Y)", orthoCam); orthoCam.position.set(center.x - camDist, center.y, center.z); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue de Gauche (Z-Y)", orthoCam); orthoCam.position.set(center.x + camDist, center.y, center.z); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue de Droite (-Z-Y)", orthoCam); orthoCam.position.set(center.x, center.y, center.z - camDist); orthoCam.lookAt(center); orthoCam.up.set(0, 1, 0); addViewToPDF("Vue Arrière (-X-Y)", orthoCam); console.log("Rendering view: 3D Perspective"); axesHelper.visible = false; const originalBackground = scene.background; scene.background = new THREE.Color(0xffffff); renderer.render(scene, camera); scene.background = originalBackground; axesHelper.visible = true; const imgData3D = renderer.domElement.toDataURL('image/png'); doc.addPage(); doc.setFontSize(12); doc.text("Vue 3D Perspective", margin, margin + 5); const canvasAspect3D = renderer.domElement.width / renderer.domElement.height; const imgAspect3D = imgW / imgH; let drawW3D, drawH3D; if (canvasAspect3D > imgAspect3D) { drawW3D = imgW; drawH3D = imgW / canvasAspect3D; } else { drawH3D = imgH; drawW3D = imgH * canvasAspect3D; } const drawX3D = margin + (imgW - drawW3D) / 2; const drawY3D = margin + 15 + (imgH - drawH3D) / 2; doc.addImage(imgData3D, 'PNG', drawX3D, drawY3D, drawW3D, drawH3D); if (doc.internal.pages.length > 1) { doc.deletePage(1); } doc.save(filename); alert(`PDF "${filename}" généré.`); }
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls.enabled) {
+                controls.update();
+            }
+            renderer.render(scene, camera);
+        }
 
-        // --- Navigation & Rotation Functions (Unchanged) ---
-        function rotateView(angle) { /* ... */ if (!controls) return; const target = controls.target; const offset = camera.position.clone().sub(target); const quaternion = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle); offset.applyQuaternion(quaternion); camera.position.copy(target).add(offset); camera.lookAt(target); controls.update(); }
-        function zoomView(factor) { /* ... */ if (!controls) return; if (factor < 1) { controls.dollyIn(1 / factor); } else { controls.dollyOut(factor); } controls.update(); }
-        function toggleSceneRotation(button) { /* ... */ isSceneRotating = !isSceneRotating; if (button) { button.classList.toggle('active', isSceneRotating); } controls.autoRotate = isSceneRotating; if (isSceneRotating) { controls.autoRotateSpeed = 0.5; } if (!isSceneRotating) { controls.update(); } }
-        function rotateGhostElement() { /* ... */ if (currentTool !== 'add-list' && currentTool !== 'add-custom' || !ghostElement.visible) return; ghostElementRotationY += THREE.MathUtils.degToRad(ROTATION_STEP_DEG); ghostElement.rotation.y = ghostElementRotationY; updateInfoText(); }
-
-        // --- Animation Loop (Unchanged) ---
-        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-
-        // --- Init ---
-        init();
+        // --- Initialization ---
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
 
     </script>
 </body>
