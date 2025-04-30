@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mur Simulateur 3D (Vue Initiale + Sélecteur Fractions)</title>
+    <title>Mur Simulateur 3D (Vues/Fractions/Long Perso)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        /* Styles CSS (ajout sélecteur taille) */
+        /* Styles CSS (ajout custom block length) */
         html, body { overscroll-behavior: none; margin: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Inter', sans-serif; }
         body { display: flex; flex-direction: column; background-color: #f0f0f0; }
         #toolbar { background-color: #e9ecef; padding: 8px 10px; border-bottom: 1px solid #dee2e6; display: flex; gap: 8px; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; flex-shrink: 0; z-index: 10; }
-        #toolbar button, #toolbar select, #toolbar input[type="number"], #toolbar input[type="text"] { padding: 8px 10px; border: 1px solid #ced4da; background-color: #ffffff; color: #495057; cursor: pointer; border-radius: 5px; font-size: 14px; transition: background-color 0.2s ease, border-color 0.2s ease; height: 38px; box-sizing: border-box; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+        #toolbar button, #toolbar select, #toolbar input[type="number"], #toolbar input[type="text"], .style-radio-group label { padding: 8px 10px; border: 1px solid #ced4da; background-color: #ffffff; color: #495057; cursor: pointer; border-radius: 5px; font-size: 14px; transition: background-color 0.2s ease, border-color 0.2s ease; height: 38px; box-sizing: border-box; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
         #toolbar button i.fa-fw, #context-menu button i.fa-fw { width: 1.25em; text-align: center; }
-        .view-button { min-width: 38px; font-weight: bold; padding: 8px; }
-        #toolbar button.active { background-color: #007bff; color: white; border-color: #0056b3; font-weight: bold; }
-        #toolbar button.disabled, #toolbar button:disabled { background-color: #e9ecef; border-color: #ced4da; color: #adb5bd; cursor: not-allowed; }
-        #toolbar button:hover:not(.active):not(:disabled) { background-color: #f1f3f5; border-color: #adb5bd; }
+        .view-button { min-width: 38px; padding: 8px; font-size: 16px; /* Slightly larger icons for views */ }
+        #toolbar button.active, #toolbar .style-radio-group input:checked + label { background-color: #007bff; color: white; border-color: #0056b3; font-weight: bold; }
+        #toolbar button.disabled, #toolbar button:disabled, .style-radio-group input:disabled + label, #toolbar input:disabled, #toolbar select:disabled { background-color: #e9ecef; border-color: #ced4da; color: #adb5bd; cursor: not-allowed; }
+        #toolbar button:hover:not(.active):not(:disabled), .style-radio-group label:hover { background-color: #f1f3f5; border-color: #adb5bd; }
         #toolbar label { font-size: 14px; margin-left: 4px; margin-right: 2px; color: #495057; white-space: nowrap; align-self: center; }
         #toolbar input[type="number"] { width: 65px; cursor: text; }
         #toolbar input[type="text"] { width: 100px; cursor: text; }
@@ -25,11 +25,12 @@
         #viewport-container.pointer-cursor { cursor: pointer; }
         canvas { display: block; }
         .info-text { font-size: 12px; color: #6c757d; padding: 0 10px; flex-basis: 100%; text-align: center; margin-top: 5px; order: 99; }
-        #element-select, #assise-select { min-width: 150px; flex-grow: 1; max-width: 200px; } /* Slightly reduced max-width */
-        #size-select { min-width: 120px; } /* Width for size select */
+        #element-select, #assise-select { min-width: 150px; flex-grow: 1; max-width: 200px; }
+        #size-select { min-width: 120px; }
         .toolbar-group { display: flex; gap: 4px; align-items: center; border-left: 1px solid #ccc; padding-left: 8px; margin-left: 8px; }
-        #element-size-group { display: flex; gap: 4px; align-items: center; } /* Group for element and size */
-        #size-select-group { display: none; /* Hidden by default */ margin-left: 4px; }
+        #element-size-group { display: flex; gap: 4px; align-items: center; }
+        #size-select-group, #custom-block-length-group { display: none; /* Hidden by default */ margin-left: 4px; }
+        #custom-block-length-group input[type="number"] { width: 75px; } /* Specific width for custom length */
         #custom-element-group { display: none; gap: 6px; align-items: center; padding: 5px; background-color: #f8f9fa; border: 1px dashed #adb5bd; border-radius: 5px; margin-left: 10px; flex-wrap: wrap; }
         #custom-element-group label { margin-left: 0; margin-right: 2px; } #custom-element-group input { flex-grow: 0; }
         #watermark { position: absolute; bottom: 10px; left: 10px; font-size: 10px; color: rgba(0, 0, 0, 0.4); background-color: rgba(255, 255, 255, 0.3); padding: 2px 5px; border-radius: 3px; pointer-events: none; z-index: 5; }
@@ -50,6 +51,16 @@
         #context-menu button:hover { background-color: #e9ecef; }
         #help-bar { background-color: #343a40; color: #f8f9fa; padding: 6px 12px; font-size: 13px; text-align: center; border-top: 1px solid #495057; flex-shrink: 0; z-index: 5; box-shadow: 0 -1px 3px rgba(0,0,0,0.1); }
         #help-bar kbd { background-color: #6c757d; color: #fff; padding: 1px 4px; border-radius: 3px; border: 1px solid #495057; font-family: monospace; font-size: 12px; margin: 0 2px; display: inline-block; line-height: 1.2; }
+        .style-radio-group input[type="radio"] { display: none; }
+        .style-radio-group label { display: inline-block; padding: 8px 12px; border: 1px solid #ced4da; background-color: #ffffff; color: #495057; cursor: pointer; border-radius: 5px; font-size: 14px; transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; height: 38px; box-sizing: border-box; line-height: 20px; }
+        .style-radio-group label:hover { background-color: #f1f3f5; border-color: #adb5bd; }
+        #load-file-input { display: none; }
+        #element-count-panel { position: absolute; top: 10px; right: 10px; background-color: rgba(248, 249, 250, 0.9); border: 1px solid #dee2e6; border-radius: 5px; padding: 10px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.15); z-index: 15; max-height: 300px; overflow-y: auto; display: none; font-size: 13px; }
+        #element-count-panel h4 { margin-top: 0; margin-bottom: 10px; font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        #element-count-panel table { width: 100%; border-collapse: collapse; }
+        #element-count-panel th, #element-count-panel td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #eee; }
+        #element-count-panel th { font-weight: bold; }
+        #element-count-panel tr:last-child td { border-bottom: none; }
     </style>
     <script type="importmap">
         {
@@ -63,6 +74,12 @@
 </head>
 <body>
     <div id="toolbar">
+        <div class="toolbar-group">
+             <button id="btn-save" title="Enregistrer la scène"><i class="fas fa-save fa-fw"></i> Enregistrer</button>
+             <button id="btn-load" title="Ouvrir une scène"><i class="fas fa-folder-open fa-fw"></i> Ouvrir</button>
+             <input type="file" id="load-file-input" accept=".json">
+        </div>
+
         <button id="tool-select" class="active" title="Sélectionner / Naviguer (S)"><i class="fas fa-mouse-pointer fa-fw"></i></button>
         <button id="tool-add" title="Ajouter Élément (A)"><i class="fas fa-plus fa-fw"></i></button>
         <button id="tool-move" class="disabled" title="Déplacer Élément (M)"><i class="fas fa-arrows-alt fa-fw"></i></button>
@@ -78,8 +95,14 @@
                     <label for="size-select">Taille:</label>
                     <select id="size-select"></select>
                 </div>
+                 <div id="custom-block-length-group">
+                    <label for="custom-block-length">L:</label>
+                    <input type="number" id="custom-block-length" value="39" step="0.1" min="1" max="39">
+                    <span>cm</span>
+                </div>
             </div>
-            <label for="joint-thickness" style="margin-left: 10px;">Joint(cm):</label> <input type="number" id="joint-thickness" value="1.2" step="0.1" min="0">
+            <label for="joint-thickness" style="margin-left: 10px;">Joint(cm):</label>
+            <input type="number" id="joint-thickness" value="1.2" step="0.1" min="0">
         </div>
 
         <div class="toolbar-group">
@@ -96,25 +119,43 @@
         </div>
 
         <div class="toolbar-group">
-             <label>Vues:</label>
-             <button id="btn-view-front" class="view-button" title="Vue de Face (Z+)">F</button>
-             <button id="btn-view-back" class="view-button" title="Vue Arrière (Z-)">B</button>
-             <button id="btn-view-left" class="view-button" title="Vue Gauche (X-)">G</button>
-             <button id="btn-view-right" class="view-button" title="Vue Droite (X+)">D</button>
-             <button id="btn-view-top" class="view-button" title="Vue Dessus (Y+)">H</button>
-             <button id="btn-view-bottom" class="view-button" title="Vue Dessous (Y-)">B</button>
-             <button id="btn-view-iso" class="view-button" title="Vue Isométrique/3D">3D</button>
+            <label>Style:</label>
+            <div class="style-radio-group">
+                <input type="radio" id="style-color" name="visual-style" value="color" checked>
+                <label for="style-color">Couleur</label>
+                <input type="radio" id="style-white" name="visual-style" value="white">
+                <label for="style-white">Blanc</label>
+            </div>
         </div>
 
         <div class="toolbar-group">
-            <button id="btn-export-pdf" title="Exporter les vues en PDF A4 Portrait"><i class="fas fa-file-pdf fa-fw"></i> Exporter PDF</button>
+             <label>Vues:</label>
+             <button id="btn-view-front" class="view-button" title="Vue de Face (Z+)"><i class="fas fa-arrow-down fa-fw"></i></button>
+             <button id="btn-view-back" class="view-button" title="Vue Arrière (Z-)"><i class="fas fa-arrow-up fa-fw"></i></button>
+             <button id="btn-view-left" class="view-button" title="Vue Gauche (X-)"><i class="fas fa-arrow-right fa-fw"></i></button>
+             <button id="btn-view-right" class="view-button" title="Vue Droite (X+)"><i class="fas fa-arrow-left fa-fw"></i></button>
+             <button id="btn-view-top" class="view-button" title="Vue Dessus (Y+)"><i class="fas fa-eye fa-fw"></i></button>
+             <button id="btn-view-bottom" class="view-button" title="Vue Dessous (Y-)"><i class="fas fa-eye-slash fa-fw"></i></button>
+             <button id="btn-view-iso" class="view-button" title="Vue Isométrique/3D"><i class="fas fa-cube fa-fw"></i></button>
+        </div>
+
+         <div class="toolbar-group">
+             <button id="btn-toggle-count" title="Afficher/Masquer le comptage"><i class="fas fa-list-ol fa-fw"></i> Compte</button>
+             <button id="btn-export-pdf" title="Exporter les vues en PDF A4 Portrait"><i class="fas fa-file-pdf fa-fw"></i> Exporter PDF</button>
         </div>
 
         <span class="info-text">Mode: Sélection / Navigation</span>
     </div>
 
     <div id="viewport-container">
-         <div id="watermark">MurSimulateur3D v.0.0.8 par J.Brohez</div> <div id="placement-controls">
+         <div id="watermark">MurSimulateur3D v.0.0.10 par J.Brohez</div>
+         <div id="element-count-panel">
+             <h4>Comptage des Éléments</h4>
+             <div id="element-count-content">
+                 <table><thead><tr><th>Élément</th><th>Quantité</th></tr></thead><tbody><tr><td colspan="2">Aucun élément placé.</td></tr></tbody></table>
+             </div>
+         </div>
+         <div id="placement-controls">
              <div id="dpad-container">
                  <div id="placement-rotation">
                      <button id="placement-rotate-left" title="Rotation Gauche 45° (Q)"><i class="fas fa-undo-alt"></i></button>
@@ -160,6 +201,7 @@
         const GRID_STEP_CM = 50;
         const CUSTOM_ELEMENT_ID = "custom";
         const DEFAULT_CUSTOM_COLOR = 0xAAAAAA;
+        const WHITE_COLOR = 0xFFFFFF;
         const SELECTION_COLOR = 0xffaa00;
         const CLICK_THRESHOLD = 200;
         const LONG_PRESS_THRESHOLD = 500;
@@ -170,14 +212,17 @@
         const VIEW_PADDING_FACTOR = 1.15;
         const MIN_VIEW_SIZE = 50;
         const INITIAL_CAMERA_HEIGHT_CM = 170;
-        const INITIAL_TARGET_Y_OFFSET = 50; // Look slightly down towards Y=50 initially
+        const INITIAL_TARGET_Y_OFFSET = 50;
+        const FRACTION_CUSTOM_KEY = 'custom'; // Key for custom length selection
 
         // --- DOM Elements ---
         const viewportContainer = document.getElementById('viewport-container');
         const toolbar = document.getElementById('toolbar');
         const elementSelect = document.getElementById('element-select');
-        const sizeSelectGroup = document.getElementById('size-select-group'); // New group
-        const sizeSelect = document.getElementById('size-select');       // New select
+        const sizeSelectGroup = document.getElementById('size-select-group');
+        const sizeSelect = document.getElementById('size-select');
+        const customBlockLengthGroup = document.getElementById('custom-block-length-group'); // Custom length group
+        const customBlockLengthInput = document.getElementById('custom-block-length'); // Custom length input
         const jointInput = document.getElementById('joint-thickness');
         const infoText = document.querySelector('.info-text');
         const selectToolButton = document.getElementById('tool-select');
@@ -192,6 +237,7 @@
         const customWidthInput = document.getElementById('custom-width');
         const customHeightInput = document.getElementById('custom-height');
         const customDepthInput = document.getElementById('custom-depth');
+        const styleRadioButtons = document.querySelectorAll('input[name="visual-style"]');
         const btnViewFront = document.getElementById('btn-view-front');
         const btnViewBack = document.getElementById('btn-view-back');
         const btnViewLeft = document.getElementById('btn-view-left');
@@ -199,6 +245,12 @@
         const btnViewTop = document.getElementById('btn-view-top');
         const btnViewBottom = document.getElementById('btn-view-bottom');
         const btnViewIso = document.getElementById('btn-view-iso');
+        const btnSave = document.getElementById('btn-save');
+        const btnLoad = document.getElementById('btn-load');
+        const loadFileInput = document.getElementById('load-file-input');
+        const btnToggleCount = document.getElementById('btn-toggle-count');
+        const elementCountPanel = document.getElementById('element-count-panel');
+        const elementCountContent = document.getElementById('element-count-content');
         const btnExportPdf = document.getElementById('btn-export-pdf');
         const placementControlsDiv = document.getElementById('placement-controls');
         const dpadUp = document.getElementById('dpad-up');
@@ -223,46 +275,27 @@
         const helpBar = document.getElementById('help-bar');
 
 
-        // --- Element Type Definitions (Dimensions in cm: width, height, depth) ---
-        // Using baseDim and optional fractions object
+        // --- Element Type Definitions ---
+        // Added fractions for blocks
         const elementTypes = {
-            // Standard Bricks (19cm length base)
             "M50": { name: "Brique M50", baseDim: [19, 5, 9], color: 0xCC6633, fractions: { '1': 19, '3/4': 14, '1/2': 9, '1/4': 4 } },
             "M57": { name: "Brique M57", baseDim: [19, 5.7, 9], color: 0xCC6633, fractions: { '1': 19, '3/4': 14, '1/2': 9, '1/4': 4 } },
             "M65": { name: "Brique M65", baseDim: [19, 6.5, 9], color: 0xCC6633, fractions: { '1': 19, '3/4': 14, '1/2': 9, '1/4': 4 } },
             "M90": { name: "Brique M90", baseDim: [19, 9, 9], color: 0xCC6633, fractions: { '1': 19, '3/4': 14, '1/2': 9, '1/4': 4 } },
-
-            // Other Bricks (no fractions defined)
             "WF": { name: "Brique WF", baseDim: [21, 5, 10], color: 0xD2691E },
             "WFD": { name: "Brique WFD", baseDim: [21, 6.5, 10], color: 0xD2691E },
-            // Champ Bricks
-            "M50c": { name: "M50 champ", baseDim: [9, 19, 5], color: 0xB87333 },
-            "M57c": { name: "M57 champ", baseDim: [9, 19, 5.7], color: 0xB87333 },
-            "M65c": { name: "M65 champ", baseDim: [9, 19, 6.5], color: 0xB87333 },
-            "M90c": { name: "M90 champ", baseDim: [9, 19, 9], color: 0xB87333 },
-            "WFc": { name: "WF champ", baseDim: [10, 21, 5], color: 0xC0C0C0 },
-            "WFDc": { name: "WFD champ", baseDim: [10, 21, 6.5], color: 0xC0C0C0 },
-            // Blocks
-            "B9": { name: "Bloc 9", baseDim: [39, 19, 9], color: 0xAAAAAA },
-            "B14": { name: "Bloc 14", baseDim: [39, 19, 14], color: 0xAAAAAA },
-            "B19": { name: "Bloc 19", baseDim: [39, 19, 19], color: 0xAAAAAA },
-            "B29": { name: "Bloc 29", baseDim: [39, 19, 29], color: 0xAAAAAA },
-            // Voids
-            "V1": { name: "Vide 1cm", baseDim: [40, 19, 1], color: 0xDDDDDD },
-            "V2": { name: "Vide 2cm", baseDim: [40, 19, 2], color: 0xDDDDDD },
-            "V3": { name: "Vide 3cm", baseDim: [40, 19, 3], color: 0xDDDDDD },
-            "V4": { name: "Vide 4cm", baseDim: [40, 19, 4], color: 0xDDDDDD },
-            "V5": { name: "Vide 5cm", baseDim: [40, 19, 5], color: 0xDDDDDD },
-            // Lintels
+            "M50c": { name: "M50 champ", baseDim: [9, 19, 5], color: 0xB87333 }, "M57c": { name: "M57 champ", baseDim: [9, 19, 5.7], color: 0xB87333 }, "M65c": { name: "M65 champ", baseDim: [9, 19, 6.5], color: 0xB87333 }, "M90c": { name: "M90 champ", baseDim: [9, 19, 9], color: 0xB87333 }, "WFc": { name: "WF champ", baseDim: [10, 21, 5], color: 0xC0C0C0 }, "WFDc": { name: "WFD champ", baseDim: [10, 21, 6.5], color: 0xC0C0C0 },
+            "B9": { name: "Bloc 9", baseDim: [39, 19, 9], color: 0xAAAAAA, fractions: { '1': 39, '3/4': 29, '1/2': 19, '1/4': 9 } },
+            "B14": { name: "Bloc 14", baseDim: [39, 19, 14], color: 0xAAAAAA, fractions: { '1': 39, '3/4': 29, '1/2': 19, '1/4': 9 } },
+            "B19": { name: "Bloc 19", baseDim: [39, 19, 19], color: 0xAAAAAA, fractions: { '1': 39, '3/4': 29, '1/2': 19, '1/4': 9 } },
+            "B29": { name: "Bloc 29", baseDim: [39, 19, 29], color: 0xAAAAAA, fractions: { '1': 39, '3/4': 29, '1/2': 19, '1/4': 9 } },
+            "V1": { name: "Vide 1cm", baseDim: [40, 19, 1], color: 0xDDDDDD }, "V2": { name: "Vide 2cm", baseDim: [40, 19, 2], color: 0xDDDDDD }, "V3": { name: "Vide 3cm", baseDim: [40, 19, 3], color: 0xDDDDDD }, "V4": { name: "Vide 4cm", baseDim: [40, 19, 4], color: 0xDDDDDD }, "V5": { name: "Vide 5cm", baseDim: [40, 19, 5], color: 0xDDDDDD },
             "L120_14": { name: "Lint 120x14", baseDim: [120, 19, 14], color: 0x888888 }, "L140_14": { name: "Lint 140x14", baseDim: [140, 19, 14], color: 0x888888 }, "L160_14": { name: "Lint 160x14", baseDim: [160, 19, 14], color: 0x888888 }, "L180_14": { name: "Lint 180x14", baseDim: [180, 19, 14], color: 0x888888 }, "L200_14": { name: "Lint 200x14", baseDim: [200, 19, 14], color: 0x888888 }, "L220_14": { name: "Lint 220x14", baseDim: [220, 19, 14], color: 0x888888 }, "L240_14": { name: "Lint 240x14", baseDim: [240, 19, 14], color: 0x888888 }, "L260_14": { name: "Lint 260x14", baseDim: [260, 19, 14], color: 0x888888 }, "L280_14": { name: "Lint 280x14", baseDim: [280, 19, 14], color: 0x888888 }, "L300_14": { name: "Lint 300x14", baseDim: [300, 19, 14], color: 0x888888 },
-            "L100_9": { name: "Lint 100x9", baseDim: [100, 19, 9], color: 0x888888 }, "L120_9": { name: "Lint 120x9", baseDim: [120, 19, 9], color: 0x888888 }, "L160_9": { name: "Lint 160x9", baseDim: [160, 19, 9], color: 0x888888 }, "L180_9": { name: "Lint 180x9", baseDim: [180, 19, 9], color: 0x888888 }, "L200_9": { name: "Lint 200x9", baseDim: [200, 19, 9], color: 0x888888 }, "L220_9": { name: "Lint 220x9", baseDim: [220, 19, 9], color: 0x888888 }, "L240_9": { name: "Lint 240x9", baseDim: [240, 19, 9], color: 0x888888 }, "L260_9": { name: "Lint 260x9", baseDim: [260, 19, 9], color: 0x888888 }, "L280_9": { name: "Lint 280x9", dim: [280, 19, 9], color: 0x888888 }, "L300_9": { name: "Lint 300x9", baseDim: [300, 19, 9], color: 0x888888 },
+            "L100_9": { name: "Lint 100x9", baseDim: [100, 19, 9], color: 0x888888 }, "L120_9": { name: "Lint 120x9", baseDim: [120, 19, 9], color: 0x888888 }, "L160_9": { name: "Lint 160x9", baseDim: [160, 19, 9], color: 0x888888 }, "L180_9": { name: "Lint 180x9", baseDim: [180, 19, 9], color: 0x888888 }, "L200_9": { name: "Lint 200x9", baseDim: [200, 19, 9], color: 0x888888 }, "L220_9": { name: "Lint 220x9", baseDim: [220, 19, 9], color: 0x888888 }, "L240_9": { name: "Lint 240x9", baseDim: [240, 19, 9], color: 0x888888 }, "L260_9": { name: "Lint 260x9", baseDim: [260, 19, 9], color: 0x888888 }, "L280_9": { name: "Lint 280x9", baseDim: [280, 19, 9], color: 0x888888 }, "L300_9": { name: "Lint 300x9", baseDim: [300, 19, 9], color: 0x888888 },
             "L100_19": { name: "Lint 100x19", baseDim: [100, 19, 19], color: 0x888888 }, "L120_19": { name: "Lint 120x19", baseDim: [120, 19, 19], color: 0x888888 }, "L160_19": { name: "Lint 160x19", baseDim: [160, 19, 19], color: 0x888888 }, "L180_19": { name: "Lint 180x19", baseDim: [180, 19, 19], color: 0x888888 }, "L200_19": { name: "Lint 200x19", baseDim: [200, 19, 19], color: 0x888888 }, "L220_19": { name: "Lint 220x19", baseDim: [220, 19, 19], color: 0x888888 }, "L240_19": { name: "Lint 240x19", baseDim: [240, 19, 19], color: 0x888888 }, "L260_19": { name: "Lint 260x19", baseDim: [260, 19, 19], color: 0x888888 }, "L280_19": { name: "Lint 280x19", baseDim: [280, 19, 19], color: 0x888888 }, "L300_19": { name: "Lint 300x19", baseDim: [300, 19, 19], color: 0x888888 },
-            // Cellular Concrete
             "BCA60_9": { name: "BC Ass 60x9", baseDim: [60, 20, 9], color: 0xE0E0E0 }, "BCA60_14": { name: "BC Ass 60x14", baseDim: [60, 20, 14], color: 0xE0E0E0 }, "BCA60_19": { name: "BC Ass 60x19", baseDim: [60, 20, 19], color: 0xE0E0E0 },
             "BC60_10": { name: "BC 60x10", baseDim: [60, 25, 10], color: 0xF0F0F0 }, "BC60_15": { name: "BC 60x15", baseDim: [60, 25, 15], color: 0xF0F0F0 }, "BC60_20": { name: "BC 60x20", baseDim: [60, 25, 20], color: 0xF0F0F0 }, "BC60_24": { name: "BC 60x24", baseDim: [60, 25, 24], color: 0xF0F0F0 }, "BC60_30": { name: "BC 60x30", baseDim: [60, 25, 30], color: 0xF0F0F0 }, "BC60_36": { name: "BC 60x36.5", baseDim: [60, 25, 36.5], color: 0xF0F0F0 },
-            // Insulation
             "PUR5": { name: "PUR 5cm", baseDim: [120, 60, 5], color: 0xFFFF99 }, "PUR6": { name: "PUR 6cm", baseDim: [120, 60, 6], color: 0xFFFF99 }, "PUR7": { name: "PUR 7cm", baseDim: [120, 60, 7], color: 0xFFFF99 }, "PUR8": { name: "PUR 8cm", baseDim: [120, 60, 8], color: 0xFFFF99 }, "PUR9": { name: "PUR 9cm", baseDim: [120, 60, 9], color: 0xFFFF99 }, "PUR10": { name: "PUR 10cm", baseDim: [120, 60, 10], color: 0xFFFF99 }, "PUR11": { name: "PUR 11cm", baseDim: [120, 60, 11], color: 0xFFFF99 }, "PUR12": { name: "PUR 12cm", baseDim: [120, 60, 12], color: 0xFFFF99 }, "PUR13": { name: "PUR 13cm", baseDim: [120, 60, 13], color: 0xFFFF99 }, "PUR14": { name: "PUR 14cm", baseDim: [120, 60, 14], color: 0xFFFF99 }, "PUR15": { name: "PUR 15cm", baseDim: [120, 60, 15], color: 0xFFFF99 }, "PUR16": { name: "PUR 16cm", baseDim: [120, 60, 16], color: 0xFFFF99 }, "PUR18": { name: "PUR 18cm", baseDim: [120, 60, 18], color: 0xFFFF99 },
-            // Profile
             "PROFIL": { name: "Profil", baseDim: [250, 6.5, 6.5], color: 0xC0C0C0 }
         };
 
@@ -270,10 +303,11 @@
         let currentTool = 'select';
         let addState = 'idle';
         let moveState = 'idle';
-        let selectedElementTypeId = Object.keys(elementTypes)[0]; // ID of the BASE element type
-        let selectedFractionKey = '1'; // Key for the selected size ('1', '3/4', '1/2', '1/4')
+        let selectedElementTypeId = Object.keys(elementTypes)[0];
+        let selectedFractionKey = '1'; // Can be '1', '3/4', '1/2', '1/4', or 'custom'
+        let currentVisualStyle = 'color';
         let jointThicknessCm = parseFloat(jointInput.value) || 1.2;
-        let placedElements = []; // Stores {id, baseTypeId, fractionKey | null, placedDim, mesh, customName?}
+        let placedElements = []; // Stores {..., customLength: number | null }
         let nextElementId = 0;
         let selectedElement = null;
         let elementForContextMenu = null;
@@ -283,6 +317,7 @@
         let originalMovePosition = null;
         let pointerDownCoords = { x: 0, y: 0 };
         let lastPerspectiveCameraState = null;
+        let isCountPanelVisible = false;
 
         // Assise Management
         let assises = [{ id: POSE_LIBRE_ID, name: "Pose Libre", height: null }];
@@ -300,94 +335,65 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
 
-            // Camera setup (Perspective) - Adjusted initial view
+            // Camera setup (Perspective)
             const aspect = viewportContainer.clientWidth / viewportContainer.clientHeight;
             camera = new THREE.PerspectiveCamera(50, aspect, 1, GRID_SIZE_CM * 5);
-            // Target point slightly above ground zero
             const initialTargetPoint = new THREE.Vector3(0, INITIAL_TARGET_Y_OFFSET, 0);
-            // Position the camera at eye level, looking towards the target
-            initialCameraPosition = new THREE.Vector3(150, INITIAL_CAMERA_HEIGHT_CM, 150); // Example position
+            initialCameraPosition = new THREE.Vector3(150, INITIAL_CAMERA_HEIGHT_CM, 150);
             camera.position.copy(initialCameraPosition);
             camera.lookAt(initialTargetPoint);
             lastPerspectiveCameraState = { position: camera.position.clone(), target: initialTargetPoint.clone() };
-            console.log(`Vue initiale: Pos(${initialCameraPosition.x.toFixed(0)}, ${initialCameraPosition.y.toFixed(0)}, ${initialCameraPosition.z.toFixed(0)}), Target(${initialTargetPoint.x.toFixed(0)}, ${initialTargetPoint.y.toFixed(0)}, ${initialTargetPoint.z.toFixed(0)})`);
 
             // Renderer setup
             renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
             renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             viewportContainer.appendChild(renderer.domElement);
 
             // OrbitControls setup
             controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.1;
-            controls.screenSpacePanning = false;
-            controls.minDistance = 10; // Increased min distance slightly
-            controls.maxDistance = GRID_SIZE_CM * 4;
-            controls.maxPolarAngle = Math.PI;
-            controls.target.copy(initialTargetPoint); // Set initial target
-            controls.listenToKeyEvents(window);
-            controls.enabled = true;
-            controls.addEventListener('end', () => {
-                if (controls.enabled) {
-                    lastPerspectiveCameraState = { position: camera.position.clone(), target: controls.target.clone() };
-                }
-            });
+            controls.enableDamping = true; controls.dampingFactor = 0.1; controls.screenSpacePanning = false;
+            controls.minDistance = 10; controls.maxDistance = GRID_SIZE_CM * 4; controls.maxPolarAngle = Math.PI;
+            controls.target.copy(initialTargetPoint); controls.listenToKeyEvents(window); controls.enabled = true;
+            controls.addEventListener('end', () => { if (controls.enabled) { lastPerspectiveCameraState = { position: camera.position.clone(), target: controls.target.clone() }; } });
             controls.update();
 
             // Lighting setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-            directionalLight.position.set(200, 350, 250);
-            directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048; directionalLight.shadow.mapSize.height = 2048;
-            directionalLight.shadow.camera.near = 50; directionalLight.shadow.camera.far = 1000;
-            const shadowCamSize = GRID_SIZE_CM;
-            directionalLight.shadow.camera.left = -shadowCamSize; directionalLight.shadow.camera.right = shadowCamSize;
-            directionalLight.shadow.camera.top = shadowCamSize; directionalLight.shadow.camera.bottom = -shadowCamSize;
-            directionalLight.shadow.camera.updateProjectionMatrix();
-            scene.add(directionalLight);
-            const bottomLight = new THREE.DirectionalLight(0xffffff, 0.4);
-            bottomLight.position.set(0, -300, 150);
-            scene.add(bottomLight);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7); directionalLight.position.set(200, 350, 250); directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048; directionalLight.shadow.mapSize.height = 2048; directionalLight.shadow.camera.near = 50; directionalLight.shadow.camera.far = 1000;
+            const shadowCamSize = GRID_SIZE_CM; directionalLight.shadow.camera.left = -shadowCamSize; directionalLight.shadow.camera.right = shadowCamSize; directionalLight.shadow.camera.top = shadowCamSize; directionalLight.shadow.camera.bottom = -shadowCamSize;
+            directionalLight.shadow.camera.updateProjectionMatrix(); scene.add(directionalLight);
+            const bottomLight = new THREE.DirectionalLight(0xffffff, 0.4); bottomLight.position.set(0, -300, 150); scene.add(bottomLight);
 
             // Ground Plane setup
-            const planeGeometry = new THREE.PlaneGeometry(GRID_SIZE_CM * 2, GRID_SIZE_CM * 2);
-            const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xF0FFF0, side: THREE.DoubleSide });
-            groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-            groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.y = -0.1;
-            groundPlane.receiveShadow = true; groundPlane.userData.isGround = true;
-            scene.add(groundPlane); objectsToRaycast.push(groundPlane);
+            const planeGeometry = new THREE.PlaneGeometry(GRID_SIZE_CM * 2, GRID_SIZE_CM * 2); const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xF0FFF0, side: THREE.DoubleSide });
+            groundPlane = new THREE.Mesh(planeGeometry, planeMaterial); groundPlane.rotation.x = -Math.PI / 2; groundPlane.position.y = -0.1; groundPlane.receiveShadow = true; groundPlane.userData.isGround = true; scene.add(groundPlane); objectsToRaycast.push(groundPlane);
 
             // Grid Helper setup
-            gridHelper = new THREE.GridHelper(GRID_SIZE_CM, GRID_SIZE_CM / GRID_STEP_CM, 0x666666, 0xaaaaaa);
-            gridHelper.position.y = 0; gridHelper.visible = false; scene.add(gridHelper);
+            gridHelper = new THREE.GridHelper(GRID_SIZE_CM, GRID_SIZE_CM / GRID_STEP_CM, 0x666666, 0xaaaaaa); gridHelper.position.y = 0; gridHelper.visible = false; scene.add(gridHelper);
 
             // Axes Helper setup
-            axesHelper = new THREE.AxesHelper(50); axesHelper.position.set(0, 0.1, 0);
-            axesHelper.material.linewidth = 2; scene.add(axesHelper);
+            axesHelper = new THREE.AxesHelper(50); axesHelper.position.set(0, 0.1, 0); axesHelper.material.linewidth = 2; scene.add(axesHelper);
 
             // Raycaster and Pointer setup
             raycaster = new THREE.Raycaster(); pointer = new THREE.Vector2();
 
             // Ghost Element setup
             const ghostMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00, opacity: 0.6, transparent: true, depthWrite: false });
-            ghostElement = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ghostMaterial);
-            ghostElement.visible = false; ghostElement.castShadow = false; scene.add(ghostElement);
+            ghostElement = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ghostMaterial); ghostElement.visible = false; ghostElement.castShadow = false; scene.add(ghostElement);
 
             // --- Initial UI Setup ---
-            populateElementSelector(); // Call this first
+            populateElementSelector();
             populateAssiseSelector();
-            handleElementSelectChange(); // Set initial state based on default selection (calls populateSizeSelector if needed)
+            handleElementSelectChange(); // Sets initial element, size, and ghost
             updateUIToolStates();
             updateInfoText();
             updateHelpBar();
-            updateGhostGeometry(); // Update ghost based on initial selection
+            updateGhostGeometry();
             updateCursor();
+            updateElementCountPanel();
 
             // --- Event Listeners ---
             window.addEventListener('resize', onWindowResize);
@@ -396,142 +402,52 @@
             viewportContainer.addEventListener('pointerup', onPointerUp, false);
             viewportContainer.addEventListener('contextmenu', (e) => e.preventDefault());
             toolbar.addEventListener('click', handleToolbarClick);
-            elementSelect.addEventListener('change', handleElementSelectChange); // Listener for base element
-            sizeSelect.addEventListener('change', handleSizeSelectChange);       // Listener for size fraction
+            elementSelect.addEventListener('change', handleElementSelectChange);
+            sizeSelect.addEventListener('change', handleSizeSelectChange);
+            customBlockLengthInput.addEventListener('input', handleCustomBlockLengthChange); // Listener for custom length
             jointInput.addEventListener('change', handleJointThicknessChange);
             customWidthInput.addEventListener('input', updateGhostGeometry);
             customHeightInput.addEventListener('input', updateGhostGeometry);
             customDepthInput.addEventListener('input', updateGhostGeometry);
             customNameInput.addEventListener('input', updateGhostGeometry);
             window.addEventListener('keydown', handleKeyDown);
-            dpadUp.addEventListener('click', () => moveGhostWithDPad(0, 0, -DPAD_INCREMENT_CM));
-            dpadDown.addEventListener('click', () => moveGhostWithDPad(0, 0, DPAD_INCREMENT_CM));
-            dpadLeft.addEventListener('click', () => moveGhostWithDPad(-DPAD_INCREMENT_CM, 0, 0));
-            dpadRight.addEventListener('click', () => moveGhostWithDPad(DPAD_INCREMENT_CM, 0, 0));
-            placementRotateLeft.addEventListener('click', () => rotateGhost(-ROTATION_INCREMENT));
-            placementRotateRight.addEventListener('click', () => rotateGhost(ROTATION_INCREMENT));
-            dpadUpY.addEventListener('click', () => moveGhostWithDPadY(1));
-            dpadDownY.addEventListener('click', () => moveGhostWithDPadY(-1));
-            placeButton.addEventListener('click', confirmAddPlacement);
-            confirmMoveButton.addEventListener('click', confirmMovePlacement);
-            cancelPlacementButton.addEventListener('click', cancelAddPlacement);
-            cancelMoveButton.addEventListener('click', cancelMovePlacement);
-            ctxRotateButton.addEventListener('click', handleContextMenuRotate);
-            ctxMoveButton.addEventListener('click', handleContextMenuMove);
-            ctxDuplicateButton.addEventListener('click', handleContextMenuDuplicate);
-            ctxDeleteButton.addEventListener('click', handleContextMenuDelete);
+            dpadUp.addEventListener('click', () => moveGhostWithDPad(0, 0, -DPAD_INCREMENT_CM)); dpadDown.addEventListener('click', () => moveGhostWithDPad(0, 0, DPAD_INCREMENT_CM)); dpadLeft.addEventListener('click', () => moveGhostWithDPad(-DPAD_INCREMENT_CM, 0, 0)); dpadRight.addEventListener('click', () => moveGhostWithDPad(DPAD_INCREMENT_CM, 0, 0));
+            placementRotateLeft.addEventListener('click', () => rotateGhost(-ROTATION_INCREMENT)); placementRotateRight.addEventListener('click', () => rotateGhost(ROTATION_INCREMENT));
+            dpadUpY.addEventListener('click', () => moveGhostWithDPadY(1)); dpadDownY.addEventListener('click', () => moveGhostWithDPadY(-1));
+            placeButton.addEventListener('click', confirmAddPlacement); confirmMoveButton.addEventListener('click', confirmMovePlacement);
+            cancelPlacementButton.addEventListener('click', cancelAddPlacement); cancelMoveButton.addEventListener('click', cancelMovePlacement);
+            ctxRotateButton.addEventListener('click', handleContextMenuRotate); ctxMoveButton.addEventListener('click', handleContextMenuMove); ctxDuplicateButton.addEventListener('click', handleContextMenuDuplicate); ctxDeleteButton.addEventListener('click', handleContextMenuDelete);
             document.addEventListener('click', handleClickOutsideContextMenu, true);
-            assiseSelect.addEventListener('change', handleAssiseSelectChange);
-            createAssiseButton.addEventListener('click', handleCreateAssise);
+            assiseSelect.addEventListener('change', handleAssiseSelectChange); createAssiseButton.addEventListener('click', handleCreateAssise);
+            styleRadioButtons.forEach(radio => { radio.addEventListener('change', handleStyleChange); });
+            btnSave.addEventListener('click', handleSave); btnLoad.addEventListener('click', handleLoadTrigger); loadFileInput.addEventListener('change', handleFileLoad); btnToggleCount.addEventListener('click', toggleElementCountPanel);
 
             // Start the animation loop
             animate();
         }
 
         // --- Tool and UI Management ---
-        function setActiveTool(toolName) {
-            if (currentTool === toolName && currentTool !== 'select' && toolName !== 'delete') return;
-            const previousTool = currentTool;
-            if (previousTool === 'add' && addState === 'positioning') cancelAddPlacement();
-            if (previousTool === 'move' && moveState === 'moving') cancelMovePlacement();
-            else originalMovePosition = null;
-            addState = 'idle'; moveState = 'idle'; hideContextMenu();
-            if (toolName === 'delete') { if (selectedElement) deleteSelectedElement(); else console.warn("Clic sur Supprimer mais aucun élément sélectionné."); return; }
-            currentTool = toolName;
-            if (currentTool === 'add' && selectedElement) deselectElement();
-            toolButtons.forEach(button => { button.classList.toggle('active', button.id === `tool-${currentTool}`); });
-            controls.enabled = (currentTool === 'select');
-            ghostElement.visible = (currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving') || (currentTool === 'duplicate' && selectedElement);
-            if (selectedElement) { selectedElement.mesh.visible = !(currentTool === 'move' && moveState === 'moving'); }
-            placementControlsDiv.style.display = (currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving') ? 'flex' : 'none';
-            if (ghostElement.visible) updateGhostGeometry();
-            updateUIToolStates(); updateInfoText(); updateHelpBar(); updateCursor();
-        }
-
+        function setActiveTool(toolName) { if (currentTool === toolName && currentTool !== 'select' && toolName !== 'delete') return; const previousTool = currentTool; if (previousTool === 'add' && addState === 'positioning') cancelAddPlacement(); if (previousTool === 'move' && moveState === 'moving') cancelMovePlacement(); else originalMovePosition = null; addState = 'idle'; moveState = 'idle'; hideContextMenu(); if (toolName === 'delete') { if (selectedElement) deleteSelectedElement(); else console.warn("Clic sur Supprimer mais aucun élément sélectionné."); return; } currentTool = toolName; if (currentTool === 'add' && selectedElement) deselectElement(); toolButtons.forEach(button => { button.classList.toggle('active', button.id === `tool-${currentTool}`); }); controls.enabled = (currentTool === 'select'); ghostElement.visible = (currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving') || (currentTool === 'duplicate' && selectedElement); if (selectedElement) { selectedElement.mesh.visible = !(currentTool === 'move' && moveState === 'moving'); } placementControlsDiv.style.display = (currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving') ? 'flex' : 'none'; if (ghostElement.visible) updateGhostGeometry(); updateUIToolStates(); updateInfoText(); updateHelpBar(); updateCursor(); }
         function updateUIToolStates() {
-            const hasSelection = selectedElement !== null;
-            const isPositioning = currentTool === 'add' && addState === 'positioning';
-            const isMoving = currentTool === 'move' && moveState === 'moving';
-            const isPlacingOrMoving = isPositioning || isMoving;
-            const isExporting = btnExportPdf && btnExportPdf.disabled;
-
-            selectToolButton.disabled = isPlacingOrMoving || isExporting;
-            addToolButton.disabled = isPlacingOrMoving || isExporting;
-            moveToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
-            rotateToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
-            duplicateToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
-            deleteToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
-
-            const manipulationActive = (currentTool === 'duplicate') && hasSelection;
-            const disableInputs = manipulationActive || isPlacingOrMoving || isExporting;
-
-            elementSelect.disabled = disableInputs;
-            sizeSelect.disabled = disableInputs; // Also disable size select during actions
-            jointInput.disabled = disableInputs;
-            assiseSelect.disabled = disableInputs;
-            createAssiseButton.disabled = disableInputs;
-
-            const disableCustomGroup = disableInputs || (currentTool === 'add' && selectedElementTypeId !== CUSTOM_ELEMENT_ID);
-            customElementGroup.style.pointerEvents = disableCustomGroup ? 'none' : 'auto';
-            customElementGroup.style.opacity = disableCustomGroup ? 0.5 : 1;
-            customNameInput.disabled = disableCustomGroup;
-            customWidthInput.disabled = disableCustomGroup;
-            customHeightInput.disabled = disableCustomGroup;
-            customDepthInput.disabled = disableCustomGroup;
-
-            placeButton.style.display = isPositioning ? 'flex' : 'none';
-            cancelPlacementButton.style.display = isPositioning ? 'flex' : 'none';
-            confirmMoveButton.style.display = isMoving ? 'flex' : 'none';
-            cancelMoveButton.style.display = isMoving ? 'flex' : 'none';
-
-            btnViewFront.disabled = isPlacingOrMoving || isExporting;
-            btnViewBack.disabled = isPlacingOrMoving || isExporting;
-            btnViewLeft.disabled = isPlacingOrMoving || isExporting;
-            btnViewRight.disabled = isPlacingOrMoving || isExporting;
-            btnViewTop.disabled = isPlacingOrMoving || isExporting;
-            btnViewBottom.disabled = isPlacingOrMoving || isExporting;
-            btnViewIso.disabled = isPlacingOrMoving || isExporting;
+            const hasSelection = selectedElement !== null; const isPositioning = currentTool === 'add' && addState === 'positioning'; const isMoving = currentTool === 'move' && moveState === 'moving'; const isPlacingOrMoving = isPositioning || isMoving; const isExporting = btnExportPdf && btnExportPdf.disabled;
+            selectToolButton.disabled = isPlacingOrMoving || isExporting; addToolButton.disabled = isPlacingOrMoving || isExporting; moveToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting; rotateToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting; duplicateToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting; deleteToolButton.disabled = isPlacingOrMoving || !hasSelection || isExporting;
+            const manipulationActive = (currentTool === 'duplicate') && hasSelection; const disableInputs = manipulationActive || isPlacingOrMoving || isExporting;
+            elementSelect.disabled = disableInputs; sizeSelect.disabled = disableInputs || sizeSelectGroup.style.display === 'none'; customBlockLengthInput.disabled = disableInputs || customBlockLengthGroup.style.display === 'none'; // Disable custom length input too
+            jointInput.disabled = disableInputs; assiseSelect.disabled = disableInputs; createAssiseButton.disabled = disableInputs; styleRadioButtons.forEach(radio => radio.disabled = isPlacingOrMoving || isExporting);
+            const disableCustomGroup = disableInputs || (currentTool === 'add' && selectedElementTypeId !== CUSTOM_ELEMENT_ID); customElementGroup.style.pointerEvents = disableCustomGroup ? 'none' : 'auto'; customElementGroup.style.opacity = disableCustomGroup ? 0.5 : 1; customNameInput.disabled = disableCustomGroup; customWidthInput.disabled = disableCustomGroup; customHeightInput.disabled = disableCustomGroup; customDepthInput.disabled = disableCustomGroup;
+            placeButton.style.display = isPositioning ? 'flex' : 'none'; cancelPlacementButton.style.display = isPositioning ? 'flex' : 'none'; confirmMoveButton.style.display = isMoving ? 'flex' : 'none'; cancelMoveButton.style.display = isMoving ? 'flex' : 'none';
+            btnViewFront.disabled = isPlacingOrMoving || isExporting; btnViewBack.disabled = isPlacingOrMoving || isExporting; btnViewLeft.disabled = isPlacingOrMoving || isExporting; btnViewRight.disabled = isPlacingOrMoving || isExporting; btnViewTop.disabled = isPlacingOrMoving || isExporting; btnViewBottom.disabled = isPlacingOrMoving || isExporting; btnViewIso.disabled = isPlacingOrMoving || isExporting;
+            btnSave.disabled = isPlacingOrMoving || isExporting; btnLoad.disabled = isPlacingOrMoving || isExporting; btnToggleCount.disabled = isPlacingOrMoving || isExporting;
         }
-
         function updateCursor() { viewportContainer.classList.remove('crosshair-cursor', 'pointer-cursor'); if ((currentTool === 'add' && addState === 'idle') || (currentTool === 'move' && moveState === 'idle' && selectedElement) || currentTool === 'duplicate' && selectedElement) { viewportContainer.classList.add('crosshair-cursor'); } else if (currentTool === 'select') { viewportContainer.classList.add('pointer-cursor'); } else { viewportContainer.style.cursor = 'default'; } }
         function handleToolbarClick(event) { const button = event.target.closest('button'); if (!button || button.disabled) return; const buttonId = button.id; if (buttonId.startsWith('btn-view-')) { const viewType = buttonId.substring(9); setView(viewType); return; } if (buttonId === 'btn-export-pdf') { exportToPDF(); return; } if (buttonId === 'btn-create-assise') { handleCreateAssise(); return; } if (buttonId.startsWith('tool-')) { const toolName = buttonId.substring(5); if (toolName === 'rotate') { if (selectedElement) rotateSelectedElement(); else console.warn("Clic sur Rotation mais aucun élément sélectionné."); } else if (toolName === 'delete') { setActiveTool('delete'); } else if (toolName === 'move') { if (selectedElement) triggerMove(); else console.warn("Clic sur Déplacer mais aucun élément sélectionné."); } else if (toolName === 'duplicate') { if (selectedElement) triggerDuplicate(); else console.warn("Clic sur Dupliquer mais aucun élément sélectionné."); } else { setActiveTool(toolName); } } }
 
+        // --- Style Management ---
+        function applyVisualStyle() { const targetColor = currentVisualStyle === 'white' ? WHITE_COLOR : null; placedElements.forEach(elementData => { if (elementData.mesh && elementData.mesh.material) { const colorToApply = targetColor ?? elementData.originalColor ?? DEFAULT_CUSTOM_COLOR; elementData.mesh.material.color.setHex(colorToApply); if (selectedElement === elementData) { elementData.mesh.material.emissive.setHex(SELECTION_COLOR); } else { elementData.mesh.material.emissive.setHex(0x000000); } elementData.mesh.material.needsUpdate = true; } }); if (ghostElement.visible && (currentTool === 'move' || currentTool === 'duplicate') && selectedElement) { const ghostColor = targetColor ?? selectedElement.originalColor ?? DEFAULT_CUSTOM_COLOR; ghostElement.material.color.setHex(ghostColor); } else if (ghostElement.visible && currentTool === 'add') { ghostElement.material.color.setHex(0x00ff00); } }
+        function handleStyleChange(event) { currentVisualStyle = event.target.value; applyVisualStyle(); }
+
         // --- Help Bar ---
-        function updateHelpBar() {
-            let helpHTML = "";
-            const kbd = (key) => `<kbd>${key}</kbd>`;
-
-            switch (currentTool) {
-                case 'select':
-                    if (selectedElement) {
-                        helpHTML = `Sélection: ${kbd('M')} Déplacer | ${kbd('R')} Rotation | ${kbd('D')} Dupliquer | ${kbd('Suppr')} Supprimer | ${kbd('Échap')} Désélectionner | Clic long: Menu`;
-                    } else {
-                        helpHTML = `Navigation: Clic/Glisser: Orbiter | Molette: Zoom | Clic: Sélectionner | Clic long: Menu | ${kbd('S')} Sélection`;
-                    }
-                    break;
-                case 'add':
-                    if (addState === 'positioning') {
-                        helpHTML = `Positionnement: Flèches/ ${kbd('PgUp')}/${kbd('PgDn')}: Ajuster | ${kbd('Q')}/${kbd('E')}: Rotation | ${kbd('Entrée')}: Placer | ${kbd('Échap')}: Annuler`;
-                    } else {
-                        helpHTML = `Ajouter: Clic/Taper: Démarrer positionnement | ${kbd('A')} Ajouter`;
-                    }
-                    break;
-                case 'move':
-                    if (moveState === 'moving') {
-                        helpHTML = `Déplacement: Flèches/ ${kbd('PgUp')}/${kbd('PgDn')}: Ajuster | ${kbd('Q')}/${kbd('E')}: Rotation | ${kbd('Entrée')}: Confirmer | ${kbd('Échap')}: Annuler`;
-                    } else {
-                        helpHTML = `Déplacer: Sélectionnez un élément puis ${kbd('M')} ou Menu contextuel | ${kbd('M')} Déplacer`;
-                    }
-                    break;
-                case 'duplicate':
-                     helpHTML = `Dupliquer: Clic/Taper: Placer la copie | ${kbd('Échap')}: Annuler | ${kbd('D')} Dupliquer`;
-                     break;
-                default:
-                    helpHTML = "Barre d'aide";
-            }
-            helpBar.innerHTML = helpHTML;
-        }
-
+        function updateHelpBar() { let helpHTML = ""; const kbd = (key) => `<kbd>${key}</kbd>`; switch (currentTool) { case 'select': if (selectedElement) { helpHTML = `Sélection: ${kbd('M')} Déplacer | ${kbd('R')} Rotation | ${kbd('D')} Dupliquer | ${kbd('Suppr')} Supprimer | ${kbd('Échap')} Désélectionner | Clic long: Menu`; } else { helpHTML = `Navigation: Clic/Glisser: Orbiter | Molette: Zoom | Clic: Sélectionner | Clic long: Menu | ${kbd('S')} Sélection`; } break; case 'add': if (addState === 'positioning') { helpHTML = `Positionnement: Flèches/ ${kbd('PgUp')}/${kbd('PgDn')}: Ajuster | ${kbd('Q')}/${kbd('E')}: Rotation | ${kbd('Entrée')}: Placer | ${kbd('Échap')}: Annuler`; } else { helpHTML = `Ajouter: Clic/Taper: Démarrer positionnement | ${kbd('A')} Ajouter`; } break; case 'move': if (moveState === 'moving') { helpHTML = `Déplacement: Flèches/ ${kbd('PgUp')}/${kbd('PgDn')}: Ajuster | ${kbd('Q')}/${kbd('E')}: Rotation | ${kbd('Entrée')}: Confirmer | ${kbd('Échap')}: Annuler`; } else { helpHTML = `Déplacer: Sélectionnez un élément puis ${kbd('M')} ou Menu contextuel | ${kbd('M')} Déplacer`; } break; case 'duplicate': helpHTML = `Dupliquer: Clic/Taper: Placer la copie | ${kbd('Échap')}: Annuler | ${kbd('D')} Dupliquer`; break; default: helpHTML = "Barre d'aide"; } helpBar.innerHTML = helpHTML; }
 
         // --- Helper: Calculate Scene Bounding Box ---
         function calculateSceneBoundingBox() { const box = new THREE.Box3(); if (placedElements.length === 0) { return box; } placedElements.forEach(element => { element.mesh.updateMatrixWorld(true); box.expandByObject(element.mesh); }); if (box.isEmpty()) { } return box; }
@@ -540,17 +456,17 @@
         function setView(viewType) { if (!controls) return; controls.enabled = false; const boundingBox = calculateSceneBoundingBox(); const center = new THREE.Vector3(); const size = new THREE.Vector3(); if (!boundingBox.isEmpty()) { boundingBox.getCenter(center); boundingBox.getSize(size); } else { center.copy(lastPerspectiveCameraState ? lastPerspectiveCameraState.target : initialCameraPosition); size.set(MIN_VIEW_SIZE, MIN_VIEW_SIZE, MIN_VIEW_SIZE); } size.x = Math.max(size.x, MIN_VIEW_SIZE); size.y = Math.max(size.y, MIN_VIEW_SIZE); size.z = Math.max(size.z, MIN_VIEW_SIZE); let requiredSize = 0; const aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; let position = new THREE.Vector3(); let up = new THREE.Vector3(0, 1, 0); switch (viewType) { case 'front': requiredSize = Math.max(size.x / aspect, size.y); position.set(center.x, center.y, center.z + requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR); up.set(0, 1, 0); break; case 'back': requiredSize = Math.max(size.x / aspect, size.y); position.set(center.x, center.y, center.z - requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR); up.set(0, 1, 0); break; case 'left': requiredSize = Math.max(size.z / aspect, size.y); position.set(center.x - requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.y, center.z); up.set(0, 1, 0); break; case 'right': requiredSize = Math.max(size.z / aspect, size.y); position.set(center.x + requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.y, center.z); up.set(0, 1, 0); break; case 'top': requiredSize = Math.max(size.x / aspect, size.z); position.set(center.x, center.y + requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.z); up.set(0, 0, -1); break; case 'bottom': requiredSize = Math.max(size.x / aspect, size.z); position.set(center.x, center.y - requiredSize * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * VIEW_PADDING_FACTOR, center.z); up.set(0, 0, 1); break; case 'iso': default: if (lastPerspectiveCameraState) { position.copy(lastPerspectiveCameraState.position); center.copy(lastPerspectiveCameraState.target); up.set(0, 1, 0); controls.enabled = true; } else { position.copy(initialCameraPosition); center.copy(initialCameraPosition); up.set(0, 1, 0); controls.enabled = true; } break; } camera.position.copy(position); camera.up.copy(up); camera.lookAt(center); controls.target.copy(center); controls.update(); }
 
         // --- PDF Export Function ---
-        async function exportToPDF() { if (!jsPDF) { console.error("jsPDF library is not loaded!"); alert("Erreur : La bibliothèque d'exportation PDF n'a pas pu être chargée."); return; } console.log("Début de l'exportation PDF Ortho+3D..."); btnExportPdf.disabled = true; btnExportPdf.textContent = "Exportation..."; updateInfoText(); const currentControlsTarget = controls.target.clone(); const currentCameraState = { position: camera.position.clone(), rotation: camera.rotation.clone(), up: camera.up.clone(), fov: camera.fov, aspect: camera.aspect, near: camera.near, far: camera.far, zoom: camera.zoom }; const controlsWereEnabled = controls.enabled; controls.enabled = false; const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const viewsToExport = [ { type: 'front', title: 'Vue de Face (Orthogonale)', ortho: true }, { type: 'back', title: 'Vue Arrière (Orthogonale)', ortho: true }, { type: 'left', title: 'Vue de Gauche (Orthogonale)', ortho: true }, { type: 'right', title: 'Vue de Droite (Orthogonale)', ortho: true }, { type: 'top', title: 'Vue de Dessus (Orthogonale)', ortho: true }, { type: 'iso', title: 'Vue Isométrique (Perspective)', ortho: false } ]; const a4WidthMm = 210; const a4HeightMm = 297; const marginMm = 15; const usableWidthMm = a4WidthMm - 2 * marginMm; const usableHeightMm = a4HeightMm - 2 * marginMm - 15; const boundingBox = calculateSceneBoundingBox(); const center = new THREE.Vector3(); const size = new THREE.Vector3(); let hasObjects = !boundingBox.isEmpty(); if (hasObjects) { boundingBox.getCenter(center); boundingBox.getSize(size); } else { center.set(0, MIN_VIEW_SIZE * 0.5, 0); size.set(MIN_VIEW_SIZE, MIN_VIEW_SIZE, MIN_VIEW_SIZE); console.warn("Export PDF: Aucun objet à exporter, utilisation de la zone par défaut."); } size.x = Math.max(size.x, MIN_VIEW_SIZE * 0.5); size.y = Math.max(size.y, MIN_VIEW_SIZE * 0.5); size.z = Math.max(size.z, MIN_VIEW_SIZE * 0.5); const orthoNear = 0.1; const orthoFar = GRID_SIZE_CM * 5; const orthoCamera = new THREE.OrthographicCamera( -1, 1, 1, -1, orthoNear, orthoFar ); try { for (let i = 0; i < viewsToExport.length; i++) { const view = viewsToExport[i]; if (i > 0) { doc.addPage(); } let renderCamera; if (view.ortho) { renderCamera = orthoCamera; const aspect = usableWidthMm / usableHeightMm; let halfWidth, halfHeight; switch (view.type) { case 'front': case 'back': halfWidth = Math.max(size.x, size.y * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x, center.y, center.z + (view.type === 'front' ? size.z + orthoFar * 0.5 : -size.z - orthoFar * 0.5)); orthoCamera.up.set(0, 1, 0); break; case 'left': case 'right': halfWidth = Math.max(size.z, size.y * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x + (view.type === 'left' ? -size.x - orthoFar * 0.5 : size.x + orthoFar * 0.5), center.y, center.z); orthoCamera.up.set(0, 1, 0); break; case 'top': case 'bottom': halfWidth = Math.max(size.x, size.z * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x, center.y + (view.type === 'top' ? size.y + orthoFar * 0.5 : -size.y - orthoFar * 0.5), center.z); orthoCamera.up.set(0, 0, view.type === 'top' ? -1 : 1); break; } orthoCamera.left = -halfWidth; orthoCamera.right = halfWidth; orthoCamera.top = halfHeight; orthoCamera.bottom = -halfHeight; orthoCamera.lookAt(center); orthoCamera.updateProjectionMatrix(); } else { renderCamera = camera; if (lastPerspectiveCameraState) { camera.position.copy(lastPerspectiveCameraState.position); camera.lookAt(lastPerspectiveCameraState.target); camera.up.set(0, 1, 0); } else { camera.position.copy(initialCameraPosition); camera.lookAt(initialCameraPosition); camera.up.set(0, 1, 0); } camera.updateProjectionMatrix(); } await new Promise(resolve => setTimeout(resolve, 60)); renderer.render(scene, renderCamera); const imageDataUrl = renderer.domElement.toDataURL('image/png'); doc.setFontSize(12); doc.text(view.title, marginMm, marginMm + 5); const canvasAspect = renderer.domElement.width / renderer.domElement.height; let imgWidthMm = usableWidthMm; let imgHeightMm = imgWidthMm / canvasAspect; if (imgHeightMm > usableHeightMm) { imgHeightMm = usableHeightMm; imgWidthMm = imgHeightMm * canvasAspect; } const imgX = marginMm + (usableWidthMm - imgWidthMm) / 2; const imgY = marginMm + 15; doc.addImage(imageDataUrl, 'PNG', imgX, imgY, imgWidthMm, imgHeightMm); } doc.save('mur_simulateur_vues_ortho.pdf'); console.log("Exportation PDF Ortho+3D terminée."); alert("Exportation PDF terminée : mur_simulateur_vues_ortho.pdf"); } catch (error) { console.error("Erreur lors de la génération du PDF:", error); alert("Une erreur s'est produite lors de la génération du PDF."); } finally { camera.position.copy(currentCameraState.position); camera.rotation.copy(currentCameraState.rotation); camera.up.copy(currentCameraState.up); camera.fov = currentCameraState.fov; camera.aspect = currentCameraState.aspect; camera.near = currentCameraState.near; camera.far = currentCameraState.far; camera.zoom = currentCameraState.zoom; camera.updateProjectionMatrix(); controls.target.copy(currentControlsTarget); controls.enabled = controlsWereEnabled; controls.update(); btnExportPdf.disabled = false; btnExportPdf.innerHTML = '<span class="icon-pdf"></span>Exporter PDF'; updateUIToolStates(); updateInfoText(); renderer.render(scene, camera); } }
+        async function exportToPDF() { if (!jsPDF) { console.error("jsPDF library is not loaded!"); alert("Erreur : La bibliothèque d'exportation PDF n'a pas pu être chargée."); return; } console.log("Début de l'exportation PDF Ortho+3D..."); btnExportPdf.disabled = true; btnExportPdf.textContent = "Exportation..."; updateInfoText(); const currentControlsTarget = controls.target.clone(); const currentCameraState = { position: camera.position.clone(), rotation: camera.rotation.clone(), up: camera.up.clone(), fov: camera.fov, aspect: camera.aspect, near: camera.near, far: camera.far, zoom: camera.zoom }; const controlsWereEnabled = controls.enabled; controls.enabled = false; const currentStyle = currentVisualStyle; applyVisualStyle('color'); const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }); const viewsToExport = [ { type: 'front', title: 'Vue de Face (Orthogonale)', ortho: true }, { type: 'back', title: 'Vue Arrière (Orthogonale)', ortho: true }, { type: 'left', title: 'Vue de Gauche (Orthogonale)', ortho: true }, { type: 'right', title: 'Vue de Droite (Orthogonale)', ortho: true }, { type: 'top', title: 'Vue de Dessus (Orthogonale)', ortho: true }, { type: 'iso', title: 'Vue Isométrique (Perspective)', ortho: false } ]; const a4WidthMm = 210; const a4HeightMm = 297; const marginMm = 15; const usableWidthMm = a4WidthMm - 2 * marginMm; const usableHeightMm = a4HeightMm - 2 * marginMm - 15; const boundingBox = calculateSceneBoundingBox(); const center = new THREE.Vector3(); const size = new THREE.Vector3(); let hasObjects = !boundingBox.isEmpty(); if (hasObjects) { boundingBox.getCenter(center); boundingBox.getSize(size); } else { center.set(0, MIN_VIEW_SIZE * 0.5, 0); size.set(MIN_VIEW_SIZE, MIN_VIEW_SIZE, MIN_VIEW_SIZE); console.warn("Export PDF: Aucun objet à exporter, utilisation de la zone par défaut."); } size.x = Math.max(size.x, MIN_VIEW_SIZE * 0.5); size.y = Math.max(size.y, MIN_VIEW_SIZE * 0.5); size.z = Math.max(size.z, MIN_VIEW_SIZE * 0.5); const orthoNear = 0.1; const orthoFar = GRID_SIZE_CM * 5; const orthoCamera = new THREE.OrthographicCamera( -1, 1, 1, -1, orthoNear, orthoFar ); try { for (let i = 0; i < viewsToExport.length; i++) { const view = viewsToExport[i]; if (i > 0) { doc.addPage(); } let renderCamera; if (view.ortho) { renderCamera = orthoCamera; const aspect = usableWidthMm / usableHeightMm; let halfWidth, halfHeight; switch (view.type) { case 'front': case 'back': halfWidth = Math.max(size.x, size.y * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x, center.y, center.z + (view.type === 'front' ? size.z + orthoFar * 0.5 : -size.z - orthoFar * 0.5)); orthoCamera.up.set(0, 1, 0); break; case 'left': case 'right': halfWidth = Math.max(size.z, size.y * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x + (view.type === 'left' ? -size.x - orthoFar * 0.5 : size.x + orthoFar * 0.5), center.y, center.z); orthoCamera.up.set(0, 1, 0); break; case 'top': case 'bottom': halfWidth = Math.max(size.x, size.z * aspect) * 0.5 * VIEW_PADDING_FACTOR; halfHeight = halfWidth / aspect; orthoCamera.position.set(center.x, center.y + (view.type === 'top' ? size.y + orthoFar * 0.5 : -size.y - orthoFar * 0.5), center.z); orthoCamera.up.set(0, 0, view.type === 'top' ? -1 : 1); break; } orthoCamera.left = -halfWidth; orthoCamera.right = halfWidth; orthoCamera.top = halfHeight; orthoCamera.bottom = -halfHeight; orthoCamera.lookAt(center); orthoCamera.updateProjectionMatrix(); } else { renderCamera = camera; if (lastPerspectiveCameraState) { camera.position.copy(lastPerspectiveCameraState.position); camera.lookAt(lastPerspectiveCameraState.target); camera.up.set(0, 1, 0); } else { camera.position.copy(initialCameraPosition); camera.lookAt(initialCameraPosition); camera.up.set(0, 1, 0); } camera.updateProjectionMatrix(); } await new Promise(resolve => setTimeout(resolve, 60)); renderer.render(scene, renderCamera); const imageDataUrl = renderer.domElement.toDataURL('image/png'); doc.setFontSize(12); doc.text(view.title, marginMm, marginMm + 5); const canvasAspect = renderer.domElement.width / renderer.domElement.height; let imgWidthMm = usableWidthMm; let imgHeightMm = imgWidthMm / canvasAspect; if (imgHeightMm > usableHeightMm) { imgHeightMm = usableHeightMm; imgWidthMm = imgHeightMm * canvasAspect; } const imgX = marginMm + (usableWidthMm - imgWidthMm) / 2; const imgY = marginMm + 15; doc.addImage(imageDataUrl, 'PNG', imgX, imgY, imgWidthMm, imgHeightMm); } doc.save('mur_simulateur_vues_ortho.pdf'); console.log("Exportation PDF Ortho+3D terminée."); alert("Exportation PDF terminée : mur_simulateur_vues_ortho.pdf"); } catch (error) { console.error("Erreur lors de la génération du PDF:", error); alert("Une erreur s'est produite lors de la génération du PDF."); } finally { currentVisualStyle = currentStyle; applyVisualStyle(); camera.position.copy(currentCameraState.position); camera.rotation.copy(currentCameraState.rotation); camera.up.copy(currentCameraState.up); camera.fov = currentCameraState.fov; camera.aspect = currentCameraState.aspect; camera.near = currentCameraState.near; camera.far = currentCameraState.far; camera.zoom = currentCameraState.zoom; camera.updateProjectionMatrix(); controls.target.copy(currentControlsTarget); controls.enabled = controlsWereEnabled; controls.update(); btnExportPdf.disabled = false; btnExportPdf.innerHTML = '<span class="icon-pdf"></span>Exporter PDF'; updateUIToolStates(); updateInfoText(); renderer.render(scene, camera); } }
 
         // --- Assise Management ---
         function populateAssiseSelector() { const currentVal = assiseSelect.value; assiseSelect.innerHTML = ''; assises.forEach(assise => { const option = document.createElement('option'); option.value = assise.id; option.textContent = assise.name + (assise.height !== null ? ` (${assise.height.toFixed(1)} cm)` : ''); assiseSelect.appendChild(option); }); if (assises.some(a => a.id === currentVal)) { assiseSelect.value = currentVal; } else { assiseSelect.value = activeAssiseId; } }
-        function handleCreateAssise() { const selectedType = getElementTypeForAdd(); if (!selectedType) { alert("Veuillez sélectionner un type d'élément valide..."); return; } const [, elemHeight,] = selectedType.dim; if (typeof elemHeight !== 'number' || elemHeight <= 0) { alert("La hauteur de l'élément sélectionné est invalide..."); return; } const currentJoint = parseFloat(jointInput.value) || 0; const assiseHeight = elemHeight + currentJoint; if (assises.some(a => a.height !== null && Math.abs(a.height - assiseHeight) < 0.01)) { alert(`Une assise de hauteur ${assiseHeight.toFixed(1)} cm existe déjà.`); return; } const newAssiseId = `assise-${Date.now()}`; const newAssiseName = `Assise ${assises.filter(a => a.height !== null).length + 1} (${selectedType.name.split(' ')[0]})`; const newAssise = { id: newAssiseId, name: newAssiseName, height: assiseHeight }; assises.push(newAssise); assises.sort((a, b) => { if (a.height === null) return -1; if (b.height === null) return 1; return a.height - b.height; }); populateAssiseSelector(); activeAssiseId = newAssiseId; assiseSelect.value = activeAssiseId; updateInfoText(); updateHelpBar();}
+        function handleCreateAssise() { const selectedType = getEffectiveElementType(); if (!selectedType) { alert("Veuillez sélectionner un type d'élément valide..."); return; } const [, elemHeight,] = selectedType.dim; if (typeof elemHeight !== 'number' || elemHeight <= 0) { alert("La hauteur de l'élément sélectionné est invalide..."); return; } const currentJoint = parseFloat(jointInput.value) || 0; const assiseHeight = elemHeight + currentJoint; if (assises.some(a => a.height !== null && Math.abs(a.height - assiseHeight) < 0.01)) { alert(`Une assise de hauteur ${assiseHeight.toFixed(1)} cm existe déjà.`); return; } const newAssiseId = `assise-${Date.now()}`; const newAssiseName = `Assise ${assises.filter(a => a.height !== null).length + 1} (${selectedType.name.split(' ')[0]})`; const newAssise = { id: newAssiseId, name: newAssiseName, height: assiseHeight }; assises.push(newAssise); assises.sort((a, b) => { if (a.height === null) return -1; if (b.height === null) return 1; return a.height - b.height; }); populateAssiseSelector(); activeAssiseId = newAssiseId; assiseSelect.value = activeAssiseId; updateInfoText(); updateHelpBar();}
         function handleAssiseSelectChange() { activeAssiseId = assiseSelect.value; updateInfoText(); updateHelpBar();}
         function getActiveAssiseHeight() { if (activeAssiseId === POSE_LIBRE_ID) return null; const activeAssise = assises.find(a => a.id === activeAssiseId); return activeAssise ? activeAssise.height : null; }
 
         // --- Selection and Context Menu ---
         function selectElement(elementData, keepContextMenuOpen = false) { if (!elementData || !elementData.mesh || !elementData.mesh.material) { console.error("Tentative de sélection d'un élément invalide:", elementData); return; } if (selectedElement === elementData) { if (!keepContextMenuOpen) hideContextMenu(); return; } deselectElement(); selectedElement = elementData; if (selectedElement.mesh.material.userData.originalEmissive === undefined) { selectedElement.mesh.material.userData.originalEmissive = selectedElement.mesh.material.emissive.getHex(); } selectedElement.mesh.material.emissive.setHex(SELECTION_COLOR); selectedElement.mesh.material.needsUpdate = true; updateUIToolStates(); updateInfoText(); updateHelpBar(); if (!keepContextMenuOpen) hideContextMenu(); }
-        function deselectElement() { hideContextMenu(); const wasMoving = currentTool === 'move' && moveState === 'moving'; if (selectedElement && selectedElement.mesh && selectedElement.mesh.material) { const originalEmissive = selectedElement.mesh.material.userData.originalEmissive ?? 0x000000; selectedElement.mesh.material.emissive.setHex(originalEmissive); selectedElement.mesh.material.needsUpdate = true; if (wasMoving && originalMovePosition) { selectedElement.mesh.position.copy(originalMovePosition); selectedElement.mesh.visible = true; } } selectedElement = null; originalMovePosition = null; updateUIToolStates(); updateInfoText(); updateHelpBar(); if (wasMoving) { moveState = 'idle'; placementControlsDiv.style.display = 'none'; setActiveTool('select'); } }
+        function deselectElement() { hideContextMenu(); const wasMoving = currentTool === 'move' && moveState === 'moving'; if (selectedElement && selectedElement.mesh && selectedElement.mesh.material) { selectedElement.mesh.material.emissive.setHex(0x000000); selectedElement.mesh.material.needsUpdate = true; if (wasMoving && originalMovePosition) { selectedElement.mesh.position.copy(originalMovePosition); selectedElement.mesh.visible = true; } } selectedElement = null; originalMovePosition = null; updateUIToolStates(); updateInfoText(); updateHelpBar(); if (wasMoving) { moveState = 'idle'; placementControlsDiv.style.display = 'none'; setActiveTool('select'); } }
         function showContextMenu(event, elementData) { elementForContextMenu = elementData; selectElement(elementData, true); const menuWidth = contextMenu.offsetWidth; const menuHeight = contextMenu.offsetHeight; const viewportWidth = viewportContainer.clientWidth; const viewportHeight = viewportContainer.clientHeight; let top = event.clientY; let left = event.clientX; if (left + menuWidth > viewportWidth - 10) left = viewportWidth - menuWidth - 10; if (top + menuHeight > viewportHeight - 10) top = viewportHeight - menuHeight - 10; if (left < 10) left = 10; if (top < 10) top = 10; contextMenu.style.left = `${left}px`; contextMenu.style.top = `${top}px`; contextMenu.style.display = 'flex'; }
         function hideContextMenu() { if (contextMenu.style.display !== 'none') { contextMenu.style.display = 'none'; elementForContextMenu = null; } }
         function handleClickOutsideContextMenu(event) { if (contextMenu.style.display === 'flex' && !contextMenu.contains(event.target)) { const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length === 0 || !elementForContextMenu || intersects[0].object !== elementForContextMenu.mesh) { hideContextMenu(); } } }
@@ -560,249 +476,91 @@
         function handleContextMenuDelete() { if (elementForContextMenu) { if (selectedElement !== elementForContextMenu) selectElement(elementForContextMenu); deleteSelectedElement(); } hideContextMenu(); }
 
         // --- Element Data and Geometry ---
-
-        /** Populates the main element selection dropdown with base types */
-        function populateElementSelector() {
-            elementSelect.innerHTML = ''; // Clear existing options
-
-            // Add the "Custom" option first
-            const customOption = document.createElement('option');
-            customOption.value = CUSTOM_ELEMENT_ID;
-            customOption.textContent = "[ Élément Personnalisé ]";
-            elementSelect.appendChild(customOption);
-
-            // Add predefined element types, sorted alphabetically by name
-            const sortedKeys = Object.keys(elementTypes).sort((a, b) => {
-                const nameA = elementTypes[a].name.toLowerCase();
-                const nameB = elementTypes[b].name.toLowerCase();
-                if (nameA < nameB) return -1;
-                if (nameA > nameB) return 1;
-                return 0;
-            });
-
-            sortedKeys.forEach(id => {
-                const type = elementTypes[id];
-                const option = document.createElement('option');
-                option.value = id;
-                // Display only the base name in the main dropdown
-                option.textContent = type.name;
-                // Store base dimensions as data attribute for potential use (optional)
-                option.dataset.baseDim = JSON.stringify(type.baseDim);
-                elementSelect.appendChild(option);
-            });
-
-            // Set the initial selection (first predefined element or custom if none exist)
-            const firstPredefinedId = sortedKeys[0];
-            if (firstPredefinedId) {
-                selectedElementTypeId = firstPredefinedId;
-                elementSelect.value = selectedElementTypeId;
-            } else {
-                selectedElementTypeId = CUSTOM_ELEMENT_ID;
-                elementSelect.value = selectedElementTypeId;
-            }
-            // Trigger initial population of the size selector based on the default element
-            handleElementSelectChange();
-        }
-
-        /** Populates the size selection dropdown based on the selected element's fractions */
-        function populateSizeSelector(fractionsData) {
-            sizeSelect.innerHTML = ''; // Clear existing options
-
-            // Define display order and text for fractions
+        function populateElementSelector() { elementSelect.innerHTML = ''; const customOption = document.createElement('option'); customOption.value = CUSTOM_ELEMENT_ID; customOption.textContent = "[ Élément Personnalisé ]"; elementSelect.appendChild(customOption); const sortedKeys = Object.keys(elementTypes).sort((a, b) => elementTypes[a].name.toLowerCase().localeCompare(elementTypes[b].name.toLowerCase())); sortedKeys.forEach(id => { const type = elementTypes[id]; const option = document.createElement('option'); option.value = id; option.textContent = type.name; option.dataset.baseDim = JSON.stringify(type.baseDim); elementSelect.appendChild(option); }); const firstPredefinedId = sortedKeys[0]; if (firstPredefinedId) { selectedElementTypeId = firstPredefinedId; elementSelect.value = selectedElementTypeId; } else { selectedElementTypeId = CUSTOM_ELEMENT_ID; elementSelect.value = selectedElementTypeId; } }
+        function populateSizeSelector(fractionsData, isBlock = false) {
+            sizeSelect.innerHTML = '';
             const fractionOrder = ['1', '3/4', '1/2', '1/4'];
-            const fractionLabels = {
-                '1': 'Entière',
-                '3/4': '3/4',
-                '1/2': '1/2',
-                '1/4': '1/4'
-            };
-
+            const fractionLabels = { '1': 'Entière', '3/4': '3/4', '1/2': '1/2', '1/4': '1/4' };
             fractionOrder.forEach(key => {
                 if (fractionsData.hasOwnProperty(key)) {
                     const length = fractionsData[key];
                     const option = document.createElement('option');
-                    option.value = key; // Store the key ('1', '3/4', etc.)
+                    option.value = key;
                     option.textContent = `${fractionLabels[key]} (${length}cm)`;
                     sizeSelect.appendChild(option);
                 }
             });
-
-            // Set default selection to '1' (Entière) if available
-            if (fractionsData.hasOwnProperty('1')) {
-                sizeSelect.value = '1';
-                selectedFractionKey = '1';
-            } else if (sizeSelect.options.length > 0) {
-                // Fallback to the first available option if '1' is not present
-                sizeSelect.selectedIndex = 0;
-                selectedFractionKey = sizeSelect.value;
-            } else {
-                selectedFractionKey = null; // No fractions available
+            // Add "Autre..." option for blocks
+            if (isBlock) {
+                const customOption = document.createElement('option');
+                customOption.value = FRACTION_CUSTOM_KEY; // Use constant key
+                customOption.textContent = 'Autre...';
+                sizeSelect.appendChild(customOption);
             }
+            // Set default
+            if (fractionsData.hasOwnProperty('1')) { sizeSelect.value = '1'; selectedFractionKey = '1'; }
+            else if (sizeSelect.options.length > 0) { sizeSelect.selectedIndex = 0; selectedFractionKey = sizeSelect.value; }
+            else { selectedFractionKey = null; }
         }
-
-
-        /**
-         * Gets the effective element type definition based on the current selections.
-         * Combines base type info with selected fraction (if applicable).
-         * @returns {object | null} The element type definition {name, dim, color, isCustom?, baseTypeId?} or null if invalid.
-         */
         function getEffectiveElementType() {
             if (selectedElementTypeId === CUSTOM_ELEMENT_ID) {
-                // Handle custom element
-                const w = parseFloat(customWidthInput.value);
-                const h = parseFloat(customHeightInput.value);
-                const d = parseFloat(customDepthInput.value);
-                const name = customNameInput.value.trim() || "Personnalisé";
-                if (isNaN(w) || w <= 0 || isNaN(h) || h <= 0 || isNaN(d) || d <= 0) {
-                    console.warn("Dimensions personnalisées invalides.");
-                    alert("Les dimensions personnalisées (L, H, P) doivent être des nombres positifs.");
-                    return null;
-                }
-                return { name: name, dim: [w, h, d], color: DEFAULT_CUSTOM_COLOR, isCustom: true };
+                const w = parseFloat(customWidthInput.value); const h = parseFloat(customHeightInput.value); const d = parseFloat(customDepthInput.value); const name = customNameInput.value.trim() || "Personnalisé";
+                if (isNaN(w) || w <= 0 || isNaN(h) || h <= 0 || isNaN(d) || d <= 0) { console.warn("Dimensions personnalisées invalides."); alert("Les dimensions personnalisées (L, H, P) doivent être des nombres positifs."); return null; }
+                const originalColor = DEFAULT_CUSTOM_COLOR; const displayColor = currentVisualStyle === 'white' ? WHITE_COLOR : originalColor;
+                return { name: name, dim: [w, h, d], originalColor: originalColor, color: displayColor, isCustom: true, baseTypeId: CUSTOM_ELEMENT_ID };
             }
-
-            // Handle predefined element
             const baseType = elementTypes[selectedElementTypeId];
-            if (!baseType) {
-                console.error(`Type d'élément de base introuvable: ${selectedElementTypeId}`);
-                return null;
-            }
+            if (!baseType) { console.error(`Type d'élément de base introuvable: ${selectedElementTypeId}`); return null; }
+            let finalDim; let effectiveName = baseType.name; let customLength = null;
+            const originalColor = baseType.color || DEFAULT_CUSTOM_COLOR; const displayColor = currentVisualStyle === 'white' ? WHITE_COLOR : originalColor;
 
-            let finalDim;
-            let effectiveName = baseType.name; // Start with base name
-
-            if (baseType.fractions && selectedFractionKey) {
-                // If fractions are available and a fraction is selected
+            if (selectedFractionKey === FRACTION_CUSTOM_KEY && baseType.fractions) { // Check if custom is selected and applicable
+                const lengthValue = parseFloat(customBlockLengthInput.value);
+                const maxLength = baseType.baseDim[0]; // Max length is the full block length
+                if (!isNaN(lengthValue) && lengthValue >= 1 && lengthValue <= maxLength) {
+                    finalDim = [lengthValue, baseType.baseDim[1], baseType.baseDim[2]];
+                    effectiveName = `${baseType.name} (Perso ${lengthValue.toFixed(1)}cm)`;
+                    customLength = lengthValue; // Store the custom length
+                } else {
+                    console.warn(`Longueur personnalisée invalide (${lengthValue}). Utilisation de la longueur entière.`);
+                    alert(`Longueur personnalisée invalide. Entrez une valeur entre 1 et ${maxLength} cm.`);
+                    finalDim = [...baseType.baseDim]; // Fallback to full length
+                    selectedFractionKey = '1'; // Reset selection
+                    sizeSelect.value = '1'; // Reset dropdown
+                    customBlockLengthGroup.style.display = 'none'; // Hide input
+                }
+            } else if (baseType.fractions && selectedFractionKey) {
                 const fractionLength = baseType.fractions[selectedFractionKey];
-                if (typeof fractionLength !== 'number') {
-                    console.error(`Longueur invalide pour la fraction ${selectedFractionKey} de ${selectedElementTypeId}`);
-                    return null; // Invalid fraction length
-                }
-                // Use fraction length (width), keep base height and depth
+                if (typeof fractionLength !== 'number') { console.error(`Longueur invalide pour la fraction ${selectedFractionKey} de ${selectedElementTypeId}`); return null; }
                 finalDim = [fractionLength, baseType.baseDim[1], baseType.baseDim[2]];
-                // Adjust name if not the full size
-                if (selectedFractionKey !== '1') {
-                    effectiveName += ` ${selectedFractionKey}`;
-                }
+                if (selectedFractionKey !== '1') { effectiveName += ` ${selectedFractionKey}`; }
             } else {
-                // No fractions available or selected, use base dimensions
-                finalDim = [...baseType.baseDim]; // Use a copy
+                finalDim = [...baseType.baseDim];
             }
-
-            return {
-                name: effectiveName,
-                dim: finalDim,
-                color: baseType.color,
-                isCustom: false,
-                baseTypeId: selectedElementTypeId, // Store the base type ID
-                fractionKey: selectedFractionKey // Store the selected fraction key
-            };
+            return { name: effectiveName, dim: finalDim, originalColor: originalColor, color: displayColor, isCustom: false, baseTypeId: selectedElementTypeId, fractionKey: selectedFractionKey, customLength: customLength };
         }
-
-
-        /**
-         * Gets the element type definition for the currently selected element in the scene.
-         * Retrieves data stored with the placed element.
-         * @returns {object | null} The element type definition {name, dim, color, isCustom?, baseTypeId?, fractionKey?} or null if no valid selection.
-         */
         function getElementTypeForSelected() {
             if (!selectedElement) return null;
-
-            // Retrieve stored data from the selected element
-            const { baseTypeId, fractionKey, placedDim, customName, mesh } = selectedElement;
+            const { baseTypeId, fractionKey, placedDim, customName, originalColor, customLength, mesh } = selectedElement; // Added customLength
+            const displayColor = currentVisualStyle === 'white' ? WHITE_COLOR : originalColor;
 
             if (baseTypeId === CUSTOM_ELEMENT_ID) {
-                // It's a custom element
-                 if (!placedDim) {
-                     console.error("Données de dimensions placées manquantes pour l'élément personnalisé sélectionné:", selectedElement.id);
-                     return null; // Should have placedDim if it was placed correctly
-                 }
-                return {
-                    name: customName || "Personnalisé",
-                    dim: placedDim, // Use the dimensions it was placed with
-                    color: mesh.material.color.getHex(), // Get current color
-                    isCustom: true,
-                    baseTypeId: CUSTOM_ELEMENT_ID
-                };
+                 if (!placedDim) { console.error("Données de dimensions placées manquantes...", selectedElement.id); return null; }
+                return { name: customName || "Personnalisé", dim: placedDim, originalColor: originalColor, color: displayColor, isCustom: true, baseTypeId: CUSTOM_ELEMENT_ID };
             } else {
-                // It's a predefined element (possibly fractional)
                 const baseType = elementTypes[baseTypeId];
-                if (!baseType) {
-                    console.error(`Type de base introuvable pour l'élément sélectionné: ${baseTypeId}`);
-                    return null;
+                if (!baseType) { console.error(`Type de base introuvable...: ${baseTypeId}`); return null; }
+                if (!placedDim) { console.error("Données de dimensions placées manquantes...", selectedElement.id); return null; }
+                let name = baseType.name;
+                if (customLength !== null) {
+                    name = `${baseType.name} (Perso ${customLength.toFixed(1)}cm)`;
+                } else if (fractionKey && fractionKey !== '1') {
+                    name += ` ${fractionKey}`;
                 }
-                 if (!placedDim) {
-                     console.error("Données de dimensions placées manquantes pour l'élément prédéfini sélectionné:", selectedElement.id);
-                     // Attempt to reconstruct dimensions as fallback
-                     const fallbackDim = baseType.fractions && fractionKey ?
-                         [baseType.fractions[fractionKey] ?? baseType.baseDim[0], baseType.baseDim[1], baseType.baseDim[2]] :
-                         [...baseType.baseDim];
-                      return {
-                          name: baseType.name + (fractionKey && fractionKey !== '1' ? ` ${fractionKey}` : ''),
-                          dim: fallbackDim, // Use reconstructed dimensions
-                          color: mesh.material.color.getHex(),
-                          isCustom: false,
-                          baseTypeId: baseTypeId,
-                          fractionKey: fractionKey
-                      };
-                 }
-
-                // Return data based on stored properties
-                return {
-                    name: baseType.name + (fractionKey && fractionKey !== '1' ? ` ${fractionKey}` : ''), // Reconstruct name
-                    dim: placedDim, // Use the dimensions it was placed with
-                    color: mesh.material.color.getHex(), // Get current color from mesh
-                    isCustom: false,
-                    baseTypeId: baseTypeId,
-                    fractionKey: fractionKey
-                };
+                return { name: name, dim: placedDim, originalColor: originalColor, color: displayColor, isCustom: false, baseTypeId: baseTypeId, fractionKey: fractionKey, customLength: customLength };
             }
         }
-
-        /** Updates the geometry and color of the ghost element based on the current selections or selected element */
-        function updateGhostGeometry() {
-            let elementType = null;
-
-            // Determine which element type to use for the ghost
-            if (currentTool === 'add') {
-                elementType = getEffectiveElementType(); // Use combined base + fraction selection
-            } else if ((currentTool === 'move' || currentTool === 'duplicate') && selectedElement) {
-                elementType = getElementTypeForSelected(); // Use data from the actual selected element
-            } else {
-                ghostElement.visible = false;
-                return;
-            }
-
-            if (!elementType || !elementType.dim) {
-                ghostElement.visible = false;
-                return;
-            };
-
-            const [widthCm, heightCm, depthCm] = elementType.dim;
-
-            // Check if geometry needs updating
-            if (!ghostElement.geometry ||
-                Math.abs(ghostElement.geometry.parameters.width - widthCm) > 0.01 ||
-                Math.abs(ghostElement.geometry.parameters.height - heightCm) > 0.01 ||
-                Math.abs(ghostElement.geometry.parameters.depth - depthCm) > 0.01)
-            {
-                if (ghostElement.geometry) ghostElement.geometry.dispose();
-                ghostElement.geometry = new THREE.BoxGeometry(widthCm, heightCm, depthCm);
-            }
-
-            // Update ghost color
-            ghostElement.material.color.setHex(elementType.color || DEFAULT_CUSTOM_COLOR);
-            ghostElement.material.needsUpdate = true;
-
-            // Update ghost rotation
-            if ((currentTool === 'move' || currentTool === 'duplicate') && selectedElement) {
-                ghostElement.rotation.copy(selectedElement.mesh.rotation);
-            } else if (currentTool === 'add') {
-                 if (addState === 'idle') {
-                     ghostElement.rotation.set(0, 0, 0);
-                 }
-            }
-        }
+        function updateGhostGeometry() { let elementType = null; if (currentTool === 'add') { elementType = getEffectiveElementType(); } else if ((currentTool === 'move' || currentTool === 'duplicate') && selectedElement) { elementType = getElementTypeForSelected(); } else { ghostElement.visible = false; return; } if (!elementType || !elementType.dim) { ghostElement.visible = false; return; }; const [widthCm, heightCm, depthCm] = elementType.dim; if (!ghostElement.geometry || Math.abs(ghostElement.geometry.parameters.width - widthCm) > 0.01 || Math.abs(ghostElement.geometry.parameters.height - heightCm) > 0.01 || Math.abs(ghostElement.geometry.parameters.depth - depthCm) > 0.01) { if (ghostElement.geometry) ghostElement.geometry.dispose(); ghostElement.geometry = new THREE.BoxGeometry(widthCm, heightCm, depthCm); } const ghostColor = (currentTool === 'add') ? 0x00ff00 : elementType.color; ghostElement.material.color.setHex(ghostColor); ghostElement.material.needsUpdate = true; if ((currentTool === 'move' || currentTool === 'duplicate') && selectedElement) { ghostElement.rotation.copy(selectedElement.mesh.rotation); } else if (currentTool === 'add') { if (addState === 'idle') ghostElement.rotation.set(0, 0, 0); } }
 
         // --- Snapping Logic ---
         function snapToGridXZ(value, dimension, joint) { const snapIncrement = Math.max(0.1, joint > 0 ? joint : 1.0); const snappedCenter = Math.round(value / snapIncrement) * snapIncrement; return snappedCenter; }
@@ -813,158 +571,171 @@
         function updateGhostPosition(event) { if (!((currentTool === 'add' && addState === 'idle') || (currentTool === 'move' && moveState === 'moving') || (currentTool === 'duplicate' && selectedElement))) { if (ghostElement.visible) ghostElement.visible = false; return; } const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const activeObjectsToRaycast = objectsToRaycast.filter(obj => !selectedElement || obj !== selectedElement.mesh || currentTool !== 'move'); const intersects = raycaster.intersectObjects(activeObjectsToRaycast, false); if (intersects.length > 0) { const snappedPosition = calculateSnappedPosition(intersects[0]); if (snappedPosition) { ghostElement.position.copy(snappedPosition); if (!ghostElement.visible) ghostElement.visible = true; } else { if (ghostElement.visible) ghostElement.visible = false; } } else { if (ghostElement.visible) ghostElement.visible = false; } }
 
         // --- Element Actions (Place, Rotate, Delete, Move, Duplicate) ---
-        /**
-         * Creates and adds a new element mesh to the scene and internal tracking.
-         * Uses the effective element type data.
-         * @param {object} effectiveElementType - The combined type definition (base + fraction).
-         * @param {THREE.Vector3} position - The center position for the new element.
-         * @param {THREE.Euler} rotation - The rotation for the new element.
-         * @returns {object | null} The data object of the newly placed element or null on failure.
-         */
         function placeElement(effectiveElementType, position, rotation) {
-            if (!effectiveElementType || !effectiveElementType.dim || effectiveElementType.dim.length !== 3) {
-                console.error("placeElement: Type d'élément effectif invalide ou dimensions manquantes.", effectiveElementType);
-                return null;
-            }
-
-            const [widthCm, heightCm, depthCm] = effectiveElementType.dim; // Use final dimensions
-
-            // Create geometry and material
+            if (!effectiveElementType || !effectiveElementType.dim || effectiveElementType.dim.length !== 3) { console.error("placeElement: Type d'élément effectif invalide...", effectiveElementType); return null; }
+            const [widthCm, heightCm, depthCm] = effectiveElementType.dim;
             const geometry = new THREE.BoxGeometry(widthCm, heightCm, depthCm);
-            const material = new THREE.MeshStandardMaterial({
-                color: effectiveElementType.color || DEFAULT_CUSTOM_COLOR,
-                roughness: 0.8, metalness: 0.1, emissive: 0x000000
-            });
+            const material = new THREE.MeshStandardMaterial({ color: effectiveElementType.color, roughness: 0.8, metalness: 0.1, emissive: 0x000000 });
             material.userData.originalEmissive = 0x000000;
-
-            // Create mesh
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.copy(position);
-            if (rotation) mesh.rotation.copy(rotation);
+            mesh.position.copy(position); if (rotation) mesh.rotation.copy(rotation);
             mesh.castShadow = true; mesh.receiveShadow = true;
-
-            // Create data object for tracking
             const elementData = {
-                id: nextElementId++,
-                mesh: mesh,
-                baseTypeId: effectiveElementType.baseTypeId || (effectiveElementType.isCustom ? CUSTOM_ELEMENT_ID : null), // Store base type or custom ID
-                fractionKey: effectiveElementType.fractionKey || null, // Store fraction key if applicable
-                placedDim: [...effectiveElementType.dim], // Store the actual dimensions used
-                ...(effectiveElementType.isCustom && { customName: effectiveElementType.name }) // Store custom name if custom
+                id: nextElementId++, mesh: mesh,
+                baseTypeId: effectiveElementType.baseTypeId,
+                fractionKey: effectiveElementType.fractionKey || null, // Store 'custom' if custom length
+                customLength: effectiveElementType.customLength || null, // Store custom length value
+                placedDim: [...effectiveElementType.dim],
+                originalColor: effectiveElementType.originalColor,
+                ...(effectiveElementType.isCustom && { customName: effectiveElementType.name })
             };
-
-            // Add to scene and tracking arrays
-            placedElements.push(elementData);
-            scene.add(mesh);
-            objectsToRaycast.push(mesh);
-
-            console.log(`Élément placé: ID=${elementData.id}, BaseID=${elementData.baseTypeId}, Fraction=${elementData.fractionKey || 'N/A'}, Dim=${elementData.placedDim.join('x')}`);
+            placedElements.push(elementData); scene.add(mesh); objectsToRaycast.push(mesh);
+            updateElementCountPanel();
             return elementData;
         }
-
         function rotateSelectedElement() { if (!selectedElement) { console.warn("Rotation annulée: aucun élément sélectionné."); return; } selectedElement.mesh.rotateY(ROTATION_INCREMENT); if (ghostElement.visible && (currentTool === 'move' || currentTool === 'duplicate')) ghostElement.rotation.copy(selectedElement.mesh.rotation); }
-        function deleteSelectedElement() { if (!selectedElement) { console.warn("Suppression annulée: aucun élément sélectionné."); return; } const elementToDelete = selectedElement; const deletedId = elementToDelete.id; scene.remove(elementToDelete.mesh); const raycastIndex = objectsToRaycast.indexOf(elementToDelete.mesh); if (raycastIndex > -1) objectsToRaycast.splice(raycastIndex, 1); else console.warn(`Mesh ${deletedId} non trouvé dans objectsToRaycast.`); const placedIndex = placedElements.findIndex(el => el.id === deletedId); if (placedIndex > -1) placedElements.splice(placedIndex, 1); else console.warn(`Data ${deletedId} non trouvé dans placedElements.`); if (elementToDelete.mesh.geometry) elementToDelete.mesh.geometry.dispose(); if (elementToDelete.mesh.material) elementToDelete.mesh.material.dispose(); selectedElement = null; originalMovePosition = null; updateUIToolStates(); updateInfoText(); updateHelpBar(); }
+        function deleteSelectedElement() { if (!selectedElement) { console.warn("Suppression annulée: aucun élément sélectionné."); return; } const elementToDelete = selectedElement; const deletedId = elementToDelete.id; scene.remove(elementToDelete.mesh); const raycastIndex = objectsToRaycast.indexOf(elementToDelete.mesh); if (raycastIndex > -1) objectsToRaycast.splice(raycastIndex, 1); else console.warn(`Mesh ${deletedId} non trouvé dans objectsToRaycast.`); const placedIndex = placedElements.findIndex(el => el.id === deletedId); if (placedIndex > -1) placedElements.splice(placedIndex, 1); else console.warn(`Data ${deletedId} non trouvé dans placedElements.`); if (elementToDelete.mesh.geometry) elementToDelete.mesh.geometry.dispose(); if (elementToDelete.mesh.material) elementToDelete.mesh.material.dispose(); selectedElement = null; originalMovePosition = null; updateUIToolStates(); updateInfoText(); updateHelpBar(); updateElementCountPanel(); }
         function triggerMove() { if (!selectedElement) return; originalMovePosition = selectedElement.mesh.position.clone(); setActiveTool('move'); moveState = 'moving'; updateGhostGeometry(); ghostElement.position.copy(selectedElement.mesh.position); ghostElement.visible = true; selectedElement.mesh.visible = false; placementControlsDiv.style.display = 'flex'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); }
         function triggerDuplicate() { if (!selectedElement) return; setActiveTool('duplicate'); updateGhostGeometry(); ghostElement.position.copy(selectedElement.mesh.position).add(new THREE.Vector3(10, 0, 0)); ghostElement.visible = true; selectedElement.mesh.visible = true; placementControlsDiv.style.display = 'none'; updateUIToolStates(); updateInfoText(); updateCursor(); }
-        function placeDuplicateElement() {
-            if (currentTool !== 'duplicate' || !selectedElement || !ghostElement.visible) { console.warn("placeDuplicateElement appelé dans un état incorrect."); return; }
-            const elementType = getElementTypeForSelected(); // Get data of the original element
-            if (!elementType) { console.error("Impossible d'obtenir le type de l'élément original..."); setActiveTool('select'); return; }
-            // Use the retrieved elementType (which includes placedDim) for placement
-            const newElement = placeElement(elementType, ghostElement.position, ghostElement.rotation);
-            if (newElement) selectElement(newElement);
-            setActiveTool('select');
-        }
+        function placeDuplicateElement() { if (currentTool !== 'duplicate' || !selectedElement || !ghostElement.visible) { console.warn("placeDuplicateElement appelé dans un état incorrect."); return; } const elementType = getElementTypeForSelected(); if (!elementType) { console.error("Impossible d'obtenir le type de l'élément original..."); setActiveTool('select'); return; } const newElement = placeElement(elementType, ghostElement.position, ghostElement.rotation); if (newElement) selectElement(newElement); setActiveTool('select'); }
 
         // --- DPad Placement/Move Actions ---
         function moveGhostWithDPad(dx, dy, dz) { if (ghostElement.visible && ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving'))) { ghostElement.position.x += dx; ghostElement.position.y += dy; ghostElement.position.z += dz; } }
         function moveGhostWithDPadY(direction) { if (ghostElement.visible && ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving'))) { const activeAssiseH = getActiveAssiseHeight(); const { height: ghostHeight } = ghostElement.geometry.parameters; const incrementY = (activeAssiseH !== null && activeAssiseH > 0) ? activeAssiseH : DPAD_INCREMENT_CM; const currentBottomY = ghostElement.position.y - ghostHeight / 2; let newBottomY = currentBottomY + (direction * incrementY); newBottomY = Math.max(0, newBottomY); const snappedBottomY = snapVerticalPosition(newBottomY, ghostHeight); ghostElement.position.y = snappedBottomY + ghostHeight / 2; } }
         function rotateGhost(angle) { if (ghostElement.visible && ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving'))) ghostElement.rotateY(angle); }
-        function confirmAddPlacement() {
-            if (currentTool === 'add' && addState === 'positioning' && ghostElement.visible) {
-                const effectiveElementType = getEffectiveElementType(); // Get combined type info
-                if (effectiveElementType) {
-                    const newElement = placeElement(effectiveElementType, ghostElement.position, ghostElement.rotation);
-                    if (newElement) {
-                        addState = 'idle'; ghostElement.visible = false; placementControlsDiv.style.display = 'none';
-                        updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); return;
-                    }
-                }
-                console.error("Échec du placement de l'élément."); cancelAddPlacement();
-            }
-        }
+        function confirmAddPlacement() { if (currentTool === 'add' && addState === 'positioning' && ghostElement.visible) { const effectiveElementType = getEffectiveElementType(); if (effectiveElementType) { const newElement = placeElement(effectiveElementType, ghostElement.position, ghostElement.rotation); if (newElement) { addState = 'idle'; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); return; } } console.error("Échec du placement de l'élément."); cancelAddPlacement(); } }
         function cancelAddPlacement() { if (currentTool === 'add' && addState === 'positioning') { addState = 'idle'; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); } }
         function confirmMovePlacement() { if (currentTool === 'move' && moveState === 'moving' && selectedElement && ghostElement.visible) { selectedElement.mesh.position.copy(ghostElement.position); selectedElement.mesh.rotation.copy(ghostElement.rotation); selectedElement.mesh.visible = true; moveState = 'idle'; originalMovePosition = null; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; setActiveTool('select'); } }
         function cancelMovePlacement() { if (currentTool === 'move' && moveState === 'moving' && selectedElement) { if (originalMovePosition) selectedElement.mesh.position.copy(originalMovePosition); else console.warn("Position originale non disponible..."); selectedElement.mesh.visible = true; moveState = 'idle'; originalMovePosition = null; ghostElement.visible = false; placementControlsDiv.style.display = 'none'; setActiveTool('select'); } }
 
         // --- Event Handlers ---
         function onWindowResize() { camera.aspect = viewportContainer.clientWidth / viewportContainer.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight); }
-        function onPointerDown(event) { if (toolbar.contains(event.target) || placementControlsDiv.contains(event.target) || contextMenu.contains(event.target)) return; const rect = renderer.domElement.getBoundingClientRect(); const isClickInsideViewport = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom; if (!isClickInsideViewport) return; isDragging = false; pointerDownTime = Date.now(); pointerDownCoords = { x: event.clientX, y: event.clientY }; clearTimeout(longPressTimer); hideContextMenu(); if (currentTool === 'select') { pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length > 0) { const elementData = placedElements.find(el => el.mesh === intersects[0].object); if (elementData) { longPressTimer = setTimeout(() => { const distanceMoved = Math.sqrt(Math.pow(event.clientX - pointerDownCoords.x, 2) + Math.pow(event.clientY - pointerDownCoords.y, 2)); if (distanceMoved < DRAG_THRESHOLD_PX) { showContextMenu(event, elementData); pointerDownTime = 0; } }, LONG_PRESS_THRESHOLD); } } } }
+        function onPointerDown(event) { if (toolbar.contains(event.target) || placementControlsDiv.contains(event.target) || contextMenu.contains(event.target) || elementCountPanel.contains(event.target)) return; const rect = renderer.domElement.getBoundingClientRect(); const isClickInsideViewport = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom; if (!isClickInsideViewport) return; isDragging = false; pointerDownTime = Date.now(); pointerDownCoords = { x: event.clientX, y: event.clientY }; clearTimeout(longPressTimer); hideContextMenu(); if (currentTool === 'select') { pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length > 0) { const elementData = placedElements.find(el => el.mesh === intersects[0].object); if (elementData) { longPressTimer = setTimeout(() => { const distanceMoved = Math.sqrt(Math.pow(event.clientX - pointerDownCoords.x, 2) + Math.pow(event.clientY - pointerDownCoords.y, 2)); if (distanceMoved < DRAG_THRESHOLD_PX) { showContextMenu(event, elementData); pointerDownTime = 0; } }, LONG_PRESS_THRESHOLD); } } } }
         function onPointerMove(event) { if (event.buttons > 0 && pointerDownTime > 0 && !isDragging) { const distanceMoved = Math.sqrt(Math.pow(event.clientX - pointerDownCoords.x, 2) + Math.pow(event.clientY - pointerDownCoords.y, 2)); if (distanceMoved >= DRAG_THRESHOLD_PX) { isDragging = true; clearTimeout(longPressTimer); hideContextMenu(); } } if (!isDragging) { if ((currentTool === 'add' && addState === 'idle') || (currentTool === 'move' && moveState === 'moving') || (currentTool === 'duplicate' && selectedElement)) updateGhostPosition(event); } }
-        function onPointerUp(event) { clearTimeout(longPressTimer); if (toolbar.contains(event.target) || placementControlsDiv.contains(event.target) || contextMenu.contains(event.target)) { isDragging = false; pointerDownTime = 0; return; } const clickDuration = Date.now() - pointerDownTime; const rect = renderer.domElement.getBoundingClientRect(); const isClickInsideViewport = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom; if (isClickInsideViewport && !isDragging && clickDuration < LONG_PRESS_THRESHOLD && pointerDownTime !== 0) { pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); if (currentTool === 'select') { const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length > 0) { const elementData = placedElements.find(el => el.mesh === intersects[0].object); if (elementData) selectElement(elementData); else { console.warn("Intersection trouvée mais données élément manquantes."); deselectElement(); } } else deselectElement(); } else if (currentTool === 'add') { if (addState === 'idle') { const activeObjectsToRaycast = objectsToRaycast.filter(obj => !selectedElement || obj !== selectedElement.mesh); const intersects = raycaster.intersectObjects(activeObjectsToRaycast, false); if (intersects.length > 0) { const snappedPosition = calculateSnappedPosition(intersects[0]); if (snappedPosition) { addState = 'positioning'; updateGhostGeometry(); ghostElement.position.copy(snappedPosition); ghostElement.visible = true; placementControlsDiv.style.display = 'flex'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); } else console.warn("Clic pour ajouter, mais position calculée invalide."); } } else if (addState === 'positioning') { /* Ignore click */ } } else if (currentTool === 'move') { /* Ignore click */ } else if (currentTool === 'duplicate') { if (selectedElement && ghostElement.visible) placeDuplicateElement(); else setActiveTool('select'); } } isDragging = false; pointerDownTime = 0; }
-
-        /** Handles changes in the main element selection dropdown */
+        function onPointerUp(event) { clearTimeout(longPressTimer); if (toolbar.contains(event.target) || placementControlsDiv.contains(event.target) || contextMenu.contains(event.target) || elementCountPanel.contains(event.target)) { isDragging = false; pointerDownTime = 0; return; } const clickDuration = Date.now() - pointerDownTime; const rect = renderer.domElement.getBoundingClientRect(); const isClickInsideViewport = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom; if (isClickInsideViewport && !isDragging && clickDuration < LONG_PRESS_THRESHOLD && pointerDownTime !== 0) { pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(pointer, camera); if (currentTool === 'select') { const placedMeshes = placedElements.map(el => el.mesh).filter(mesh => mesh); const intersects = raycaster.intersectObjects(placedMeshes, false); if (intersects.length > 0) { const elementData = placedElements.find(el => el.mesh === intersects[0].object); if (elementData) selectElement(elementData); else { console.warn("Intersection trouvée mais données élément manquantes."); deselectElement(); } } else deselectElement(); } else if (currentTool === 'add') { if (addState === 'idle') { const activeObjectsToRaycast = objectsToRaycast.filter(obj => !selectedElement || obj !== selectedElement.mesh); const intersects = raycaster.intersectObjects(activeObjectsToRaycast, false); if (intersects.length > 0) { const snappedPosition = calculateSnappedPosition(intersects[0]); if (snappedPosition) { addState = 'positioning'; updateGhostGeometry(); ghostElement.position.copy(snappedPosition); ghostElement.visible = true; placementControlsDiv.style.display = 'flex'; updateUIToolStates(); updateInfoText(); updateCursor(); updateHelpBar(); } else console.warn("Clic pour ajouter, mais position calculée invalide."); } } else if (addState === 'positioning') { /* Ignore click */ } } else if (currentTool === 'move') { /* Ignore click */ } else if (currentTool === 'duplicate') { if (selectedElement && ghostElement.visible) placeDuplicateElement(); else setActiveTool('select'); } } isDragging = false; pointerDownTime = 0; }
         function handleElementSelectChange(event) {
             selectedElementTypeId = elementSelect.value;
             const selectedTypeData = elementTypes[selectedElementTypeId];
+            const isBlock = selectedElementTypeId.startsWith('B') && selectedElementTypeId !== 'BCA60_9' && selectedElementTypeId !== 'BCA60_14' && selectedElementTypeId !== 'BCA60_19'; // Check if it's a standard block
 
-            // Show/hide custom dimension inputs
             customElementGroup.style.display = (selectedElementTypeId === CUSTOM_ELEMENT_ID) ? 'flex' : 'none';
+            sizeSelectGroup.style.display = (selectedTypeData && selectedTypeData.fractions && selectedElementTypeId !== CUSTOM_ELEMENT_ID) ? 'inline-flex' : 'none';
+            customBlockLengthGroup.style.display = 'none'; // Hide custom length by default
 
-            // Show/hide and populate size dropdown
-            if (selectedTypeData && selectedTypeData.fractions) {
-                populateSizeSelector(selectedTypeData.fractions);
-                sizeSelectGroup.style.display = 'inline-flex'; // Show the group
+            if (selectedTypeData && selectedTypeData.fractions && selectedElementTypeId !== CUSTOM_ELEMENT_ID) {
+                populateSizeSelector(selectedTypeData.fractions, isBlock); // Pass isBlock flag
+                // Check if custom length should be shown immediately (if 'custom' was selected)
+                if (sizeSelect.value === FRACTION_CUSTOM_KEY) {
+                     customBlockLengthGroup.style.display = 'inline-flex';
+                     // Set default/max value for the input
+                     customBlockLengthInput.max = baseType.baseDim[0];
+                     customBlockLengthInput.value = baseType.baseDim[0]; // Default to full length
+                }
             } else {
-                sizeSelectGroup.style.display = 'none'; // Hide the group
-                sizeSelect.innerHTML = ''; // Clear options
-                selectedFractionKey = null; // No fraction applicable
+                sizeSelect.innerHTML = '';
+                selectedFractionKey = null;
             }
 
-            // If in 'add' tool idle state, update the ghost geometry preview
             if (currentTool === 'add' && addState === 'idle') {
                 updateGhostGeometry();
-                ghostElement.visible = false; // Keep ghost hidden until pointer moves over viewport
+                ghostElement.visible = false;
             }
-            updateUIToolStates();
-            updateInfoText();
-            updateHelpBar();
+            updateUIToolStates(); updateInfoText(); updateHelpBar();
         }
-
-         /** Handles changes in the size fraction dropdown */
-         function handleSizeSelectChange(event) {
+        function handleSizeSelectChange(event) {
             selectedFractionKey = sizeSelect.value;
-            // If in 'add' tool idle state, update the ghost geometry preview
-            if (currentTool === 'add' && addState === 'idle') {
-                updateGhostGeometry();
-                ghostElement.visible = false; // Keep ghost hidden until pointer moves over viewport
-            } else if (currentTool === 'add' && addState === 'positioning') {
-                 updateGhostGeometry(); // Update ghost immediately if positioning
-            }
-            updateInfoText(); // Update info text if needed
-            updateHelpBar(); // Update help bar if needed
-        }
+            const baseType = elementTypes[selectedElementTypeId];
+            const isBlock = selectedElementTypeId.startsWith('B') && baseType && baseType.fractions;
 
+            if (selectedFractionKey === FRACTION_CUSTOM_KEY && isBlock) {
+                customBlockLengthGroup.style.display = 'inline-flex';
+                // Set default/max value for the input
+                customBlockLengthInput.max = baseType.baseDim[0];
+                customBlockLengthInput.value = baseType.baseDim[0]; // Default to full length initially
+            } else {
+                customBlockLengthGroup.style.display = 'none';
+            }
+
+            if (currentTool === 'add') { // Update ghost only if in add mode
+                 updateGhostGeometry();
+                 if (addState === 'idle') ghostElement.visible = false;
+            }
+            updateInfoText(); updateHelpBar();
+        }
+        /** Handles changes in the custom block length input */
+        function handleCustomBlockLengthChange(event) {
+             const baseType = elementTypes[selectedElementTypeId];
+             if (!baseType) return;
+             const maxLength = baseType.baseDim[0];
+             let value = parseFloat(event.target.value);
+
+             // Validate and clamp value
+             if (isNaN(value) || value < 1) {
+                 value = 1;
+                 event.target.value = value; // Correct input visually
+             } else if (value > maxLength) {
+                 value = maxLength;
+                 event.target.value = value; // Correct input visually
+             }
+
+             // Update ghost if adding/positioning
+             if (currentTool === 'add') {
+                 updateGhostGeometry();
+                 if (addState === 'idle') ghostElement.visible = false;
+             }
+             updateInfoText(); // Update info text to reflect custom size
+        }
 
         function handleJointThicknessChange(event) { const value = parseFloat(event.target.value); if (!isNaN(value) && value >= 0) { jointThicknessCm = value; } else event.target.value = jointThicknessCm; }
         function handleKeyDown(event) { if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return; const key = event.key.toLowerCase(); let helpBarNeedsUpdate = false; if (key === 'escape') { event.preventDefault(); hideContextMenu(); if (currentTool === 'add' && addState === 'positioning') { cancelAddPlacement(); helpBarNeedsUpdate = true; } else if (currentTool === 'move' && moveState === 'moving') { cancelMovePlacement(); helpBarNeedsUpdate = true; } else if (selectedElement) { deselectElement(); helpBarNeedsUpdate = true; } if(helpBarNeedsUpdate) updateHelpBar(); return; } if (key === 'enter') { event.preventDefault(); if (currentTool === 'add' && addState === 'positioning') { confirmAddPlacement(); helpBarNeedsUpdate = true; } else if (currentTool === 'move' && moveState === 'moving') { confirmMovePlacement(); helpBarNeedsUpdate = true; } if(helpBarNeedsUpdate) updateHelpBar(); return; } if (key === 'delete' || key === 'backspace') { if (!deleteToolButton.disabled) { event.preventDefault(); deleteSelectedElement(); helpBarNeedsUpdate = true; } if(helpBarNeedsUpdate) updateHelpBar(); return; } if ((currentTool === 'add' && addState === 'positioning') || (currentTool === 'move' && moveState === 'moving')) { let handled = true; switch(key) { case 'arrowup': case 'w': moveGhostWithDPad(0, 0, -DPAD_INCREMENT_CM); break; case 'arrowdown': case 's': moveGhostWithDPad(0, 0, DPAD_INCREMENT_CM); break; case 'arrowleft': case 'a': moveGhostWithDPad(-DPAD_INCREMENT_CM, 0, 0); break; case 'arrowright': case 'd': moveGhostWithDPad(DPAD_INCREMENT_CM, 0, 0); break; case 'pageup': moveGhostWithDPadY(1); break; case 'pagedown': moveGhostWithDPadY(-1); break; case 'q': rotateGhost(-ROTATION_INCREMENT); break; case 'e': rotateGhost(ROTATION_INCREMENT); break; default: handled = false; break; } if (handled) { event.preventDefault(); return; } } switch(key) { case 's': if (!selectToolButton.disabled) { setActiveTool('select'); helpBarNeedsUpdate = true; } break; case 'a': if (!addToolButton.disabled) { setActiveTool('add'); helpBarNeedsUpdate = true; } break; case 'm': if (!moveToolButton.disabled) { triggerMove(); helpBarNeedsUpdate = true; } break; case 'r': if (!rotateToolButton.disabled) rotateSelectedElement(); break; case 'd': if (!duplicateToolButton.disabled) { triggerDuplicate(); helpBarNeedsUpdate = true; } break; } if(helpBarNeedsUpdate) updateHelpBar(); }
         function updateInfoText() { let text = ""; const activeAssise = assises.find(a => a.id === activeAssiseId); const assiseInfo = activeAssise ? ` | Assise: ${activeAssise.name}` + (activeAssise.height !== null ? ` (${activeAssise.height.toFixed(1)} cm)` : '') : ''; switch(currentTool) { case 'select': text = selectedElement ? `Mode: Sélectionné (ID: ${selectedElement.id})` : 'Mode: Sélection / Navigation'; text += " (Clic/Appui long, Glisser: Orbiter)"; break; case 'add': const effectiveType = getEffectiveElementType(); const addName = effectiveType ? effectiveType.name : "Invalide"; if (addState === 'positioning') text = `Positionnement (${addName}): Ajustez (Flèches/PgUpDn), Rotation (QE), puis Placer (✅/Entrée) ou Annuler (❌/Échap)`; else text = `Mode: Ajouter (${addName}) - Cliquez/Tapez pour positionner`; text += assiseInfo; break; case 'move': if (moveState === 'moving') { const moveName = getElementTypeForSelected()?.name || `ID ${selectedElement?.id}`; text = `Déplacement (${moveName}): Ajustez (Flèches/PgUpDn), Rotation (QE), puis Confirmer (✅/Entrée) ou Annuler (❌/Échap)`; text += assiseInfo; } else text = selectedElement ? `Mode: Déplacer (Prêt pour ID: ${selectedElement.id})` : 'Mode: Déplacer (Sélectionnez d\'abord)'; break; case 'duplicate': const dupName = getElementTypeForSelected()?.name || `ID ${selectedElement?.id}`; text = selectedElement ? `Mode: Dupliquer (${dupName}) - Cliquez/Tapez pour placer copie` : 'Mode: Dupliquer (Sélectionnez d\'abord)'; text += assiseInfo; break; default: text = `Mode: ${currentTool}`; } if (btnExportPdf && btnExportPdf.disabled) text += " | Exportation PDF en cours..."; infoText.textContent = text; }
 
-        // --- Animation Loop ---
-        function animate() {
-            requestAnimationFrame(animate);
-            if (controls.enabled) {
-                controls.update();
-            }
-            renderer.render(scene, camera);
+        // --- Save / Load Functions ---
+        function clearScene() { placedElements.forEach(elementData => { if (elementData.mesh) { scene.remove(elementData.mesh); const raycastIndex = objectsToRaycast.indexOf(elementData.mesh); if (raycastIndex > -1) objectsToRaycast.splice(raycastIndex, 1); if (elementData.mesh.geometry) elementData.mesh.geometry.dispose(); if (elementData.mesh.material) elementData.mesh.material.dispose(); } }); placedElements = []; objectsToRaycast.length = 0; objectsToRaycast.push(groundPlane); nextElementId = 0; selectedElement = null; elementForContextMenu = null; originalMovePosition = null; assises = [{ id: POSE_LIBRE_ID, name: "Pose Libre", height: null }]; activeAssiseId = POSE_LIBRE_ID; populateAssiseSelector(); console.log("Scene cleared."); }
+        function handleSave() { console.log("Saving scene..."); try { const saveData = { version: "1.1", // Incremented version for customLength
+                assises: assises.filter(a => a.id !== POSE_LIBRE_ID), activeAssiseId: activeAssiseId, // Save active assise
+                elements: placedElements.map(el => ({ baseTypeId: el.baseTypeId, fractionKey: el.fractionKey, customLength: el.customLength || null, // Save custom length
+                    placedDim: el.placedDim, originalColor: el.originalColor, customName: el.customName || null, position: el.mesh.position.toArray(), rotation: el.mesh.rotation.toArray().slice(0, 3) })) }; const jsonString = JSON.stringify(saveData, null, 2); const blob = new Blob([jsonString], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = "mur_simulateur_save.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); console.log("Scene saved successfully."); alert("Scène enregistrée avec succès !"); } catch (error) { console.error("Error saving scene:", error); alert("Une erreur s'est produite lors de l'enregistrement de la scène."); } }
+        function handleLoadTrigger() { loadFileInput.click(); }
+        function handleFileLoad(event) { const file = event.target.files[0]; if (!file) { return; } console.log(`Loading file: ${file.name}`); const reader = new FileReader(); reader.onload = (e) => { try { const jsonString = e.target.result; const loadedData = JSON.parse(jsonString); if (!loadedData || typeof loadedData !== 'object' || !Array.isArray(loadedData.elements) || !Array.isArray(loadedData.assises)) { throw new Error("Format de fichier invalide."); } clearScene(); loadedData.assises.forEach(loadedAssise => { if (loadedAssise.id !== POSE_LIBRE_ID) { assises.push(loadedAssise); } }); assises.sort((a, b) => { if (a.height === null) return -1; if (b.height === null) return 1; return a.height - b.height; }); populateAssiseSelector(); activeAssiseId = assises.some(a => a.id === loadedData.activeAssiseId) ? loadedData.activeAssiseId : POSE_LIBRE_ID; assiseSelect.value = activeAssiseId; loadedData.elements.forEach(elData => { const position = new THREE.Vector3().fromArray(elData.position); const rotation = new THREE.Euler().fromArray(elData.rotation); const baseType = elementTypes[elData.baseTypeId]; let effectiveElementType; if (elData.baseTypeId === CUSTOM_ELEMENT_ID) { effectiveElementType = { name: elData.customName || "Personnalisé", dim: elData.placedDim, originalColor: elData.originalColor || DEFAULT_CUSTOM_COLOR, color: currentVisualStyle === 'white' ? WHITE_COLOR : (elData.originalColor || DEFAULT_CUSTOM_COLOR), isCustom: true, baseTypeId: CUSTOM_ELEMENT_ID }; } else if (baseType) { let name = baseType.name; if (elData.customLength != null) { name = `${baseType.name} (Perso ${elData.customLength.toFixed(1)}cm)`; } else if (elData.fractionKey && elData.fractionKey !== '1') { name += ` ${elData.fractionKey}`; } effectiveElementType = { name: name, dim: elData.placedDim, originalColor: elData.originalColor || baseType.color || DEFAULT_CUSTOM_COLOR, color: currentVisualStyle === 'white' ? WHITE_COLOR : (elData.originalColor || baseType.color || DEFAULT_CUSTOM_COLOR), isCustom: false, baseTypeId: elData.baseTypeId, fractionKey: elData.fractionKey, customLength: elData.customLength || null }; } else { console.warn(`Type d'élément inconnu lors du chargement: ${elData.baseTypeId}. Ignoré.`); return; } placeElement(effectiveElementType, position, rotation); }); applyVisualStyle(); updateElementCountPanel(); updateUIToolStates(); updateInfoText(); updateHelpBar(); console.log("Scene loaded successfully."); alert("Scène chargée avec succès !"); } catch (error) { console.error("Error loading file:", error); alert(`Erreur lors du chargement du fichier : ${error.message}`); clearScene(); updateElementCountPanel(); } finally { loadFileInput.value = null; } }; reader.onerror = (e) => { console.error("Error reading file:", e); alert("Erreur lors de la lecture du fichier."); loadFileInput.value = null; }; reader.readAsText(file); }
+
+        // --- Element Count Panel ---
+        function toggleElementCountPanel() { isCountPanelVisible = !isCountPanelVisible; elementCountPanel.style.display = isCountPanelVisible ? 'block' : 'none'; btnToggleCount.innerHTML = `<i class="fas ${isCountPanelVisible ? 'fa-eye-slash' : 'fa-list-ol'} fa-fw"></i> Compte`; }
+        function updateElementCountPanel() {
+            const counts = {}; let totalCount = 0;
+            placedElements.forEach(el => {
+                let key; let displayName;
+                if (el.baseTypeId === CUSTOM_ELEMENT_ID) {
+                    key = `custom_${el.customName || 'Perso'}_${el.placedDim.join('x')}`;
+                    displayName = `${el.customName || 'Perso'} (${el.placedDim.join('x')}cm)`;
+                } else {
+                    const baseName = elementTypes[el.baseTypeId]?.name || el.baseTypeId;
+                    let sizeLabel = '';
+                    if (el.customLength != null) {
+                        sizeLabel = ` (Perso ${el.customLength.toFixed(1)}cm)`;
+                        key = `${el.baseTypeId}_custom_${el.customLength.toFixed(1)}`;
+                    } else if (el.fractionKey && el.fractionKey !== '1') {
+                        sizeLabel = ` ${el.fractionKey}`;
+                        key = `${el.baseTypeId}_${el.fractionKey}`;
+                    } else {
+                        key = `${el.baseTypeId}_1`; // Key for full size
+                    }
+                    displayName = `${baseName}${sizeLabel}`;
+                }
+                counts[key] = (counts[key] || { count: 0, name: displayName });
+                counts[key].count++; totalCount++;
+            });
+            let tableHTML = `<table><thead><tr><th>Élément</th><th>Quantité</th></tr></thead><tbody>`;
+            if (totalCount === 0) { tableHTML += `<tr><td colspan="2" style="text-align: center; font-style: italic;">Aucun élément placé.</td></tr>`; }
+            else { const sortedCounts = Object.values(counts).sort((a, b) => a.name.localeCompare(b.name)); sortedCounts.forEach(item => { tableHTML += `<tr><td>${item.name}</td><td>${item.count}</td></tr>`; }); tableHTML += `<tr style="font-weight: bold; border-top: 2px solid #ccc;"><td >Total</td><td>${totalCount}</td></tr>`; }
+            tableHTML += `</tbody></table>`; elementCountContent.innerHTML = tableHTML;
         }
 
+        // --- Animation Loop ---
+        function animate() { requestAnimationFrame(animate); if (controls.enabled) { controls.update(); } renderer.render(scene, camera); }
+
         // --- Initialization ---
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
 
     </script>
 </body>
