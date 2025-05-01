@@ -1,0 +1,11 @@
+export const GRID_SIZE_CM = 1000; // Size of the grid in cm
+export const GRID_STEP_CM = 50; // Spacing of grid lines in cm
+export const CUSTOM_ELEMENT_ID = "custom"; // ID for the custom element option
+export const DEFAULT_CUSTOM_COLOR = 0xAAAAAA; // Default color for custom elements
+export const SELECTION_COLOR = 0xffaa00; // Emissive color for selected elements
+export const CLICK_THRESHOLD = 200; // Max duration (ms) for a click vs hold
+export const LONG_PRESS_THRESHOLD = 500; // Duration (ms) to trigger context menu
+export const DPAD_INCREMENT_CM = 1; // Movement step (cm) using DPad/arrows
+export const ROTATION_INCREMENT = Math.PI / 4; // Rotation step (45 degrees)
+export const DRAG_THRESHOLD_PX = 5; // Minimum pixel distance to register a drag
+export const POSE_LIBRE_ID = "pose-libre"; // Special ID for free placement (no assise constraint)
