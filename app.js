@@ -58,6 +58,23 @@ document.addEventListener('click', handleClickOutsideContextMenu, true); // Use 
 assiseSelect.addEventListener('change', handleAssiseSelectChange); // Listener for assise dropdown change
 createAssiseButton.addEventListener('click', handleCreateAssise); // Listener for create assise button
 
+// Top Bar interactions
+document.getElementById('file-menu').addEventListener('click', () => {
+    console.log('Fichier menu clicked');
+});
+document.getElementById('edit-menu').addEventListener('click', () => {
+    console.log('Édition menu clicked');
+});
+document.getElementById('view-menu').addEventListener('click', () => {
+    console.log('Vue menu clicked');
+});
+document.getElementById('tools-menu').addEventListener('click', () => {
+    console.log('Outils menu clicked');
+});
+document.getElementById('help-menu').addEventListener('click', () => {
+    console.log('Aide menu clicked');
+});
+
 // Start the animation loop
 animate();
 console.log("Simulateur initialisé. Caméra rapprochée, grille cachée, sol vert très clair, ciel bleu.");
