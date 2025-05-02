@@ -1,0 +1,14 @@
+html, body {
+  overscroll-behavior: none;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  background-color: #f0f0f0;
+}
+/* Ajoute ici le reste de ton CSS */
