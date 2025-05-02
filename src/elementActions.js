@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { DEFAULT_CUSTOM_COLOR } from './constants.js';
 import { elementTypes } from './elementTypes.js';
 import { selectedElement, nextElementId, placedElements, objectsToRaycast, currentTool, addState, moveState, originalMovePosition, ghostElement } from './stateVariables.js';
@@ -49,7 +50,7 @@ export function placeElement(elementType, position, rotation) {
             elementTypes[key].dim.every((dim, i) => Math.abs(dim - elementType.dim[i]) < 0.01) // Compare dims with tolerance
         );
         storedTypeId = foundId || elementType.originalTypeId || selectedElementTypeId; // Fallback logic
-        if (!foundId) console.warn(`Could not find original ID for ${elementType.name}, using fallback: ${storedTypeId}`);
+        if (!foundId) console.warn(`Could not find original ID for ${elementType.name, using fallback: ${storedTypeId}`);
     }
 
     // Create data object for tracking
