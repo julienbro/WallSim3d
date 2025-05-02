@@ -137,7 +137,11 @@ import * as THREE from 'three';
             "PUR15": { name: "PUR 15cm", dim: [120, 60, 15], color: 0xFFFF99 },
             "PUR16": { name: "PUR 16cm", dim: [120, 60, 16], color: 0xFFFF99 },
             "PUR18": { name: "PUR 18cm", dim: [120, 60, 18], color: 0xFFFF99 },
-            "PROFIL": { name: "Profil", dim: [250, 6.5, 6.5], color: 0xC0C0C0 }
+            "PROFIL": { name: "Profil", dim: [250, 6.5, 6.5], color: 0xC0C0C0 },
+            "Brique_19": { name: "Brique 19cm", dim: [19, 19, 19], color: 0xCC6633 }, // P5cf5
+            "Brique_14": { name: "Brique 14cm", dim: [14, 19, 19], color: 0xCC6633 }, // P5cf5
+            "Brique_9": { name: "Brique 9cm", dim: [9, 19, 19], color: 0xCC6633 }, // P5cf5
+            "Brique_4": { name: "Brique 4cm", dim: [4, 19, 19], color: 0xCC6633 } // P5cf5
         };
 
         // --- State Variables ---
