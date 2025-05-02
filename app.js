@@ -57,7 +57,9 @@ import * as THREE from 'three';
         // Assise Controls
         const assiseSelect = document.getElementById('assise-select');
         const createAssiseButton = document.getElementById('btn-create-assise');
-
+        // File Controls
+        const openButton = document.getElementById('btn-open');
+        const saveButton = document.getElementById('btn-save');
 
         // --- Element Type Definitions (Dimensions in cm: width, height, depth) ---
         // Note: Using numeric color values (Hexadecimal)
@@ -313,6 +315,10 @@ import * as THREE from 'three';
             // Assise Controls Listeners
             assiseSelect.addEventListener('change', handleAssiseSelectChange); // Listener for assise dropdown change
             createAssiseButton.addEventListener('click', handleCreateAssise); // Listener for create assise button
+
+            // File Controls Listeners
+            openButton.addEventListener('click', openFile);
+            saveButton.addEventListener('click', saveFile);
 
             // Start the animation loop
             animate();
@@ -1899,4 +1905,89 @@ import * as THREE from 'three';
             document.addEventListener('DOMContentLoaded', init);
         } else {
             init(); // DOM is already loaded
+        }
+
+        // --- File Operations ---
+
+        /** Handles file opening */
+        function openFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json'; // Accept only JSON files
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            loadSceneFromData(data);
+                        } catch (error) {
+                            console.error('Erreur lors de la lecture du fichier:', error);
+                            alert('Erreur lors de la lecture du fichier. Veuillez vérifier le format.');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        /** Handles file saving */
+        function saveFile() {
+            const data = getSceneData();
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'scene.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        /** Extracts the current scene data */
+        function getSceneData() {
+            return {
+                elements: placedElements.map(el => ({
+                    id: el.id,
+                    typeId: el.typeId,
+                    position: el.mesh.position.toArray(),
+                    rotation: el.mesh.rotation.toArray(),
+                    customDimensions: el.customDimensions || null,
+                    customName: el.customName || null
+                }))
+            };
+        }
+
+        /** Loads the scene from the provided data */
+        function loadSceneFromData(data) {
+            // Clear existing elements
+            placedElements.forEach(el => {
+                scene.remove(el.mesh);
+                if (el.mesh.geometry) el.mesh.geometry.dispose();
+                if (el.mesh.material) el.mesh.material.dispose();
+            });
+            placedElements = [];
+            objectsToRaycast.length = 1; // Keep only the ground plane
+
+            // Add new elements from data
+            data.elements.forEach(elData => {
+                const elementType = elData.typeId === CUSTOM_ELEMENT_ID ? {
+                    name: elData.customName || "Personnalisé",
+                    dim: elData.customDimensions,
+                    color: DEFAULT_CUSTOM_COLOR,
+                    isCustom: true
+                } : elementTypes[elData.typeId];
+
+                if (elementType) {
+                    const position = new THREE.Vector3().fromArray(elData.position);
+                    const rotation = new THREE.Euler().fromArray(elData.rotation);
+                    placeElement(elementType, position, rotation);
+                } else {
+                    console.warn(`Type d'élément introuvable pour ID: ${elData.typeId}`);
+                }
+            });
+
+            console.log("Scène chargée à partir des données.");
         }
