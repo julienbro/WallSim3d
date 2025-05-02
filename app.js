@@ -60,6 +60,12 @@ import * as THREE from 'three';
         // Save and Open Buttons
         const saveButton = document.getElementById('btn-save'); // P88c2
         const openButton = document.getElementById('btn-open'); // P88c2
+        // View Change Buttons
+        const btnViewFront = document.getElementById('btn-view-front');
+        const btnViewLeft = document.getElementById('btn-view-left');
+        const btnViewRight = document.getElementById('btn-view-right');
+        const btnViewTop = document.getElementById('btn-view-top');
+        const btnView3D = document.getElementById('btn-view-3d');
 
         // --- Element Type Definitions (Dimensions in cm: width, height, depth) ---
         // Note: Using numeric color values (Hexadecimal)
@@ -324,6 +330,13 @@ import * as THREE from 'three';
             saveButton.addEventListener('click', saveToFile); // P88c2
             openButton.addEventListener('click', loadFromFile); // P88c2
 
+            // View Change Buttons Listeners
+            btnViewFront.addEventListener('click', () => handleViewChange('front'));
+            btnViewLeft.addEventListener('click', () => handleViewChange('left'));
+            btnViewRight.addEventListener('click', () => handleViewChange('right'));
+            btnViewTop.addEventListener('click', () => handleViewChange('top'));
+            btnView3D.addEventListener('click', () => handleViewChange('3d'));
+
             // Start the animation loop
             animate();
             console.log("Simulateur initialisé. Caméra rapprochée, grille cachée, sol vert très clair, ciel bleu.");
@@ -487,6 +500,12 @@ import * as THREE from 'three';
             if (buttonId === 'btn-create-assise') {
                  if (!button.disabled) handleCreateAssise();
                  return;
+            }
+
+            // View change buttons
+            if (buttonId === 'btn-view-front' || buttonId === 'btn-view-left' || buttonId === 'btn-view-right' || buttonId === 'btn-view-top' || buttonId === 'btn-view-3d') {
+                handleViewChange(buttonId.split('-')[2]);
+                return;
             }
 
             // Tool activation/action buttons
@@ -1886,6 +1905,35 @@ import * as THREE from 'three';
                 controls.dollyOut(factor); // dollyOut expects factor > 1 for zooming out
             }
             controls.update(); // Apply the change
+        }
+
+        /** Handles view change button clicks */
+        function handleViewChange(view) {
+            switch(view) {
+                case 'front':
+                    camera.position.set(0, 15, 40);
+                    camera.lookAt(0, 15, 0);
+                    break;
+                case 'left':
+                    camera.position.set(-40, 15, 0);
+                    camera.lookAt(0, 15, 0);
+                    break;
+                case 'right':
+                    camera.position.set(40, 15, 0);
+                    camera.lookAt(0, 15, 0);
+                    break;
+                case 'top':
+                    camera.position.set(0, 60, 0);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case '3d':
+                    camera.position.set(40, 45, 40);
+                    camera.lookAt(0, 15, 0);
+                    break;
+                default:
+                    console.warn(`Vue inconnue: ${view}`);
+            }
+            controls.update();
         }
 
         // --- Animation Loop ---
