@@ -121,12 +121,16 @@ export function updateUIToolStates() {
     customHeightInput.disabled = disableCustomGroup;
     customDepthInput.disabled = disableCustomGroup;
 
-
     // Placement control buttons visibility
     placeButton.style.display = isPositioning ? 'flex' : 'none';
     cancelPlacementButton.style.display = isPositioning ? 'flex' : 'none';
     confirmMoveButton.style.display = isMoving ? 'flex' : 'none';
     cancelMoveButton.style.display = isMoving ? 'flex' : 'none';
+
+    // Ensure ghost element visibility is correctly managed
+    ghostElement.visible = (currentTool === 'add' && addState === 'positioning') ||
+                           (currentTool === 'move' && moveState === 'moving') ||
+                           (currentTool === 'duplicate' && selectedElement);
 }
 
 /** Updates the mouse cursor style based on the current tool */

@@ -1,7 +1,7 @@
 import { CUSTOM_ELEMENT_ID, DEFAULT_CUSTOM_COLOR } from './constants.js';
 import { elementTypes } from './elementTypes.js';
 import { elementSelect, customWidthInput, customHeightInput, customDepthInput, customNameInput } from './domElements.js';
-import { selectedElementTypeId, selectedElement } from './stateVariables.js';
+import { selectedElementTypeId, selectedElement, currentTool, addState, moveState, ghostElement } from './stateVariables.js';
 
 /** Populates the element selection dropdown */
 export function populateElementSelector() {
