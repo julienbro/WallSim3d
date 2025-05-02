@@ -58,6 +58,9 @@ document.addEventListener('click', handleClickOutsideContextMenu, true); // Use 
 assiseSelect.addEventListener('change', handleAssiseSelectChange); // Listener for assise dropdown change
 createAssiseButton.addEventListener('click', handleCreateAssise); // Listener for create assise button
 
+// Initialize element selector
+populateElementSelector();
+
 // Start the animation loop
 animate();
 console.log("Simulateur initialisé. Caméra rapprochée, grille cachée, sol vert très clair, ciel bleu.");
