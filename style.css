@@ -38,3 +38,7 @@
         #context-menu button:hover { background-color: #e9ecef; } #context-menu button .icon::before { font-size: 16px; display: inline-block; width: 20px; text-align: center; }
         /* Context Menu Icons */
         .ctx-icon-rotate::before { content: "🔄"; } .ctx-icon-move::before { content: "↔️"; } .ctx-icon-duplicate::before { content: "📋"; } .ctx-icon-delete::before { content: "🗑️"; }
+        /* Styles for Save and Open buttons */
+        #btn-save, #btn-open { background-color: #007bff; color: white; border-color: #0056b3; }
+        #btn-save:hover, #btn-open:hover { background-color: #0056b3; }
+        #btn-save:disabled, #btn-open:disabled { background-color: #e9ecef; border-color: #ced4da; color: #adb5bd; cursor: not-allowed; }
