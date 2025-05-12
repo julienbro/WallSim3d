@@ -20,10 +20,10 @@
     <div id="toolbar">
         <button id="tool-select" class="icon-select active" title="Sélectionner / Naviguer (S)"></button>
         <button id="tool-add" class="icon-add" title="Ajouter Élément (A)"></button>
-        <button id="tool-move" class="icon-move disabled" title="Déplacer Élément (M)"></button>
-        <button id="tool-rotate" class="icon-rotate disabled" title="Rotation Sélection 45° (R)"></button>
-        <button id="tool-duplicate" class="icon-duplicate disabled" title="Dupliquer Élément (D)"></button>
-         <button id="tool-delete" class="icon-delete disabled" title="Supprimer Sélection (Suppr)"></button>
+        <button id="tool-move" class="icon-move" title="Déplacer Élément (M)"></button>
+        <button id="tool-rotate" class="icon-rotate" title="Rotation Sélection 45° (R)"></button>
+        <button id="tool-duplicate" class="icon-duplicate" title="Dupliquer Élément (D)"></button>
+        <button id="tool-delete" class="icon-delete" title="Supprimer Sélection (Suppr)"></button>
 
         <div class="toolbar-group">
             <label for="element-select">Élément:</label>
@@ -44,14 +44,19 @@
             <label for="custom-height">H(cm):</label> <input type="number" id="custom-height" value="10" step="0.1" min="0.1">
             <label for="custom-depth">P(cm):</label> <input type="number" id="custom-depth" value="10" step="0.1" min="0.1">
         </div>
-
-        <div class="toolbar-group">
-             <button id="btn-orbit-left" class="icon-orbit-left" title="Orbite Gauche (←)"></button>
-             <button id="btn-orbit-right" class="icon-orbit-right" title="Orbite Droite (→)"></button>
-             <button id="btn-zoom-in" class="icon-zoom-in" title="Zoom Avant (+)"></button>
-             <button id="btn-zoom-out" class="icon-zoom-out" title="Zoom Arrière (-)"></button>
-        </div>
         <span class="info-text">Mode: Sélection / Navigation</span>
+    </div>
+
+    <!-- Left Sidebar -->
+    <div id="left-sidebar">
+        <div id="left-sidebar-header">
+            <span>Outils</span>
+            <button id="toggle-left-sidebar" title="Afficher/Masquer le menu">◀</button>
+        </div>
+        <div id="left-sidebar-content">
+            <!-- Add content for the left sidebar here -->
+            <p>Contenu du menu latéral gauche.</p>
+        </div>
     </div>
 
     <div id="viewport-container">
@@ -87,6 +92,47 @@
              <button id="ctx-delete"><span class="icon ctx-icon-delete"></span>Supprimer</button>
          </div>
     </div>
+
+    <!-- Right Sidebar -->
+    <div id="right-sidebar">
+        <div id="sidebar-header">
+            <span>Menu</span>
+            <button id="toggle-sidebar" title="Afficher/Masquer le menu">▶</button>
+        </div>
+        <div id="sidebar-content">
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <span>Titre de l'ouvrage</span>
+                    <button class="toggle-section" title="Afficher/Masquer">▼</button>
+                </div>
+                <div class="section-content">
+                    <textarea id="titre-ouvrage" placeholder="Entrez le titre de l'ouvrage ici..."></textarea>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <span>Prénom et Nom du dessinateur</span>
+                    <button class="toggle-section" title="Afficher/Masquer">▼</button>
+                </div>
+                <div class="section-content">
+                    <label for="prenom-dessinateur">Prénom:</label>
+                    <input type="text" id="prenom-dessinateur" placeholder="Entrez le prénom">
+                    <label for="nom-dessinateur">Nom:</label>
+                    <input type="text" id="nom-dessinateur" placeholder="Entrez le nom">
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <span>Mode opératoire</span>
+                    <button class="toggle-section" title="Afficher/Masquer">▼</button>
+                </div>
+                <div class="section-content">
+                    <textarea id="mode-operatoire" placeholder="Entrez le mode opératoire ici..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>
