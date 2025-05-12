@@ -21,7 +21,7 @@
         /* Icons using Unicode characters for simplicity in this example */
         .icon-select::before { content: "👆"; margin-right: 4px; } .icon-add::before { content: "➕"; margin-right: 4px; } .icon-move::before { content: "↔️"; margin-right: 4px; } .icon-rotate::before { content: "🔄"; margin-right: 4px; } .icon-duplicate::before { content: "📋"; margin-right: 4px; } .icon-delete::before { content: "🗑️"; margin-right: 4px; } .icon-orbit-left::before { content: "↺"; } .icon-orbit-right::before { content: "↻"; } .icon-zoom-in::before { content: "➕"; } .icon-zoom-out::before { content: "➖"; } .icon-confirm::before { content: "✅"; } .icon-cancel::before { content: "❌"; } .icon-rotate-left::before { content: "↺"; font-size: 18px; } .icon-rotate-right::before { content: "↻"; font-size: 18px; } .icon-dpad-up::before { content: "⬆️"; font-size: 18px; } /* Icones DPad Y */ .icon-dpad-down::before { content: "⬇️"; font-size: 18px; }
         #watermark { position: absolute; bottom: 10px; left: 10px; font-size: 10px; color: rgba(0, 0, 0, 0.4); background-color: rgba(255, 255, 255, 0.3); padding: 2px 5px; border-radius: 3px; pointer-events: none; z-index: 5; }
-        #placement-controls { position: absolute; bottom: 20px; right: 20px; display: none; flex-direction: column; align-items: center; gap: 10px; background-color: rgba(233, 236, 239, 0.8); padding: 15px; border-radius: 10px; z-index: 20; touch-action: none; }
+        #placement-controls { position: absolute; bottom: 20px; left: 20px; display: none; flex-direction: column; align-items: center; gap: 10px; background-color: rgba(233, 236, 239, 0.8); padding: 15px; border-radius: 10px; z-index: 20; touch-action: none; }
         #dpad-container { display: flex; align-items: center; gap: 15px; }
         #dpad { display: grid; grid-template-columns: 40px 40px 40px; grid-template-rows: 40px 40px 40px; gap: 5px; justify-items: center; align-items: center; }
         #dpad button, #placement-rotation button, #placement-vertical button { /* Style commun DPad, Rotation, Vertical */ width: 40px; height: 40px; font-size: 20px; line-height: 40px; text-align: center; padding: 0; border: 1px solid #adb5bd; background-color: #f8f9fa; border-radius: 5px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -38,3 +38,374 @@
         #context-menu button:hover { background-color: #e9ecef; } #context-menu button .icon::before { font-size: 16px; display: inline-block; width: 20px; text-align: center; }
         /* Context Menu Icons */
         .ctx-icon-rotate::before { content: "🔄"; } .ctx-icon-move::before { content: "↔️"; } .ctx-icon-duplicate::before { content: "📋"; } .ctx-icon-delete::before { content: "🗑️"; }
+
+#file-bar {
+    background-color: #e9ecef;
+    padding: 8px 10px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 20;
+}
+
+#file-bar .menu {
+    position: relative;
+}
+
+#file-bar .menu > button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 5px 10px;
+    color: #495057;
+    transition: background-color 0.2s ease;
+}
+
+#file-bar .menu > button:hover {
+    background-color: #f1f3f5;
+}
+
+#file-bar .menu .dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    z-index: 30;
+    min-width: 150px;
+}
+
+#file-bar .menu:hover .dropdown {
+    display: block;
+}
+
+#file-bar .menu .dropdown button {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    color: #495057;
+    transition: background-color 0.2s ease;
+}
+
+#file-bar .menu .dropdown button:hover {
+    background-color: #f1f3f5;
+}
+
+#right-sidebar {
+    position: absolute;
+    top: 120px; /* Increased top position to ensure the main title is visible */
+    right: 0;
+    width: 240px; /* Reduced width to allow 20% visibility of the 3D viewport */
+    height: 90%; /* Set height to 90% */
+    background-color: #f4f4f4;
+    border-left: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, width 0.3s ease; /* Smooth transition for collapsing */
+    transform: translateX(0); /* Default position */
+    opacity: 1; /* Ensure visible when not collapsed */
+    overflow: hidden; /* Ensure hidden content when collapsed */
+}
+
+#right-sidebar.collapsed {
+    width: 40px; /* Keep the collapsed width unchanged */
+    transform: none; /* Prevent full translation out of view */
+    opacity: 1; /* Ensure the toggle button and text are visible */
+    pointer-events: auto; /* Allow interactions */
+}
+
+#right-sidebar.collapsed-right {
+    transform: translateX(calc(100% - 40px)); /* Leave a 40px strip visible */
+    width: 40px; /* Set the visible strip width */
+    pointer-events: auto; /* Allow interactions with the visible strip */
+}
+
+#right-sidebar.collapsed-right #sidebar-header {
+    transform: translateX(-100%); /* Keep the toggle button visible */
+    pointer-events: auto; /* Allow interactions with the toggle button */
+}
+
+#right-sidebar.collapsed #sidebar-content {
+    display: none; /* Hide the sidebar content */
+}
+
+#right-sidebar.collapsed #sidebar-header {
+    display: flex; /* Keep the header visible */
+    justify-content: center; /* Center the toggle button */
+    align-items: center;
+    padding: 0; /* Remove extra padding */
+    background-color: #ddd;
+    border-bottom: none; /* Remove the bottom border */
+    writing-mode: vertical-rl; /* Rotate text vertically */
+    text-align: center;
+    transform: rotate(180deg); /* Flip text for proper vertical orientation */
+    font-size: 14px; /* Adjust font size for readability */
+    white-space: nowrap; /* Prevent text wrapping */
+}
+
+#toggle-sidebar {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #ddd;
+    border-bottom: 1px solid #ccc;
+    font-weight: bold;
+}
+
+#sidebar-content {
+    flex: 1;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+#mode-operatoire {
+    width: 100%;
+    height: auto;
+    resize: none;
+    border: 1px solid #ccc;
+    padding: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    box-sizing: border-box;
+    line-height: 1.5; /* Adjust line height for better readability */
+    min-height: calc(1.5em * 15); /* Set height to 15 lines */
+    overflow-y: auto; /* Add scroll if content exceeds the height */
+    white-space: pre-wrap; /* Ensure line breaks are preserved */
+    overflow-wrap: break-word; /* Handle long words gracefully */
+}
+
+#titre-ouvrage {
+    width: 100%;
+    margin-bottom: 10px;
+    resize: none;
+    border: 1px solid #ccc;
+    padding: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    box-sizing: border-box;
+    white-space: pre-wrap; /* Ensure line breaks are preserved */
+    overflow-wrap: break-word; /* Handle long words gracefully */
+}
+
+.sidebar-section {
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ddd;
+    padding: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none; /* Prevent text selection on click */
+}
+
+.section-content {
+    max-height: 500px; /* Set a maximum height for expanded sections */
+    overflow: hidden; /* Hide content that exceeds the max height */
+    transition: max-height 0.3s ease, opacity 0.3s ease; /* Smooth transition */
+    opacity: 1; /* Fully visible when expanded */
+    display: block; /* Ensure content is displayed when expanded */
+}
+
+.section-content.collapsed {
+    max-height: 0; /* Collapse the section */
+    opacity: 0; /* Fade out the content */
+    overflow: hidden; /* Hide content when collapsed */
+    display: none; /* Ensure content is hidden when collapsed */
+}
+
+.toggle-section {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#right-sidebar .sidebar-section .section-content {
+    display: block;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+#right-sidebar .sidebar-section.collapsed .section-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+#left-sidebar {
+    position: absolute;
+    top: 50px; /* Adjust to match the height of the horizontal toolbar */
+    left: 0;
+    width: 300px;
+    height: calc(100% - 50px); /* Subtract the toolbar height */
+    background-color: #f4f4f4;
+    border-right: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    transform: translateX(0);
+}
+
+#left-sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+#left-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #ddd;
+    border-bottom: 1px solid #ccc;
+    font-weight: bold;
+}
+
+#toggle-left-sidebar {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#metre-section {
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#metre-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ddd;
+    padding: 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#metre-section .section-content {
+    padding: 10px;
+    display: block;
+    transition: max-height 0.3s ease;
+}
+
+#metre-section .section-content.collapsed {
+    display: none;
+}
+
+#metre-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#metre-list li {
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #333;
+}
+
+@media (max-width: 768px) {
+    #right-sidebar {
+        top: auto; /* Reset top position */
+    }
+
+    #toolbar {
+        flex-wrap: wrap; /* Allow toolbar to wrap to multiple lines */
+    }
+
+    #right-sidebar {
+        top: calc(var(--toolbar-height, 50px) + 10px); /* Adjust top dynamically based on toolbar height */
+    }
+}
+
+#element-counter {
+    position: fixed; /* Ensure it stays visible on the screen */
+    bottom: 20px; /* Adjust position from the bottom */
+    right: 20px; /* Adjust position from the right */
+    background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
+    border: 1px solid #ccc; /* Add a border for visibility */
+    border-radius: 5px; /* Rounded corners */
+    padding: 10px; /* Add padding for spacing */
+    font-size: 14px; /* Adjust font size */
+    color: #333; /* Text color */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    z-index: 100; /* Ensure it appears above other elements */
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-width: 300px;
+    overflow: hidden;
+}
+
+#element-counter .element-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #555;
+}
+
+#element-counter .element-counter-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    color: #555;
+}
+
+#element-counter .element-counter-table th,
+#element-counter .element-counter-table td {
+    border: 1px solid #ddd;
+    padding: 5px;
+    text-align: left;
+}
+
+#element-counter .element-counter-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+#element-counter .element-counter-table {
+    display: block;
+    overflow-y: auto;
+    max-height: 200px; /* Adjust as needed */
+}
+
+#element-counter .element-counter-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+#element-counter .element-counter-table tr:hover {
+    background-color: #f1f1f1;
+}
