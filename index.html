@@ -3,136 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mur Simulateur 3D (Gestion Assises + DPad Vertical)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <title>Simulateur de Construction 3D</title>
     <link rel="stylesheet" href="style.css">
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
-            }
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
 </head>
 <body>
-    <!-- Toolbar, Viewport, and Controls are included here -->
-    <div id="toolbar">
-        <button id="tool-select" class="icon-select active" title="Sélectionner / Naviguer (S)"></button>
-        <button id="tool-add" class="icon-add" title="Ajouter Élément (A)"></button>
-        <button id="tool-move" class="icon-move" title="Déplacer Élément (M)"></button>
-        <button id="tool-rotate" class="icon-rotate" title="Rotation Sélection 45° (R)"></button>
-        <button id="tool-duplicate" class="icon-duplicate" title="Dupliquer Élément (D)"></button>
-        <button id="tool-delete" class="icon-delete" title="Supprimer Sélection (Suppr)"></button>
+    <div id="custom-alert-box" class="custom-alert"></div>
 
-        <div class="toolbar-group">
-            <label for="element-select">Élément:</label>
-            <select id="element-select"></select>
-            <label for="joint-thickness">Joint(cm):</label>
-            <input type="number" id="joint-thickness" value="1.2" step="0.1" min="0">
-        </div>
+    <div class="top-bar">
+        <nav class="menu-bar">
+            <ul>
+                <li>Fichier
+                    <ul>
+                        <li id="file-new">Nouveau</li>
+                        <li id="file-open">Ouvrir (Non implémenté)</li>
+                        <li id="file-save">Enregistrer (Non implémenté)</li>
+                        <li id="file-export-pdf">Exporter en PDF</li>
+                    </ul>
+                </li>
+                <li>Édition
+                    <ul>
+                        <li id="edit-undo">Annuler (Non implémenté)</li>
+                        <li id="edit-redo">Rétablir (Non implémenté)</li>
+                    </ul>
+                </li>
+                <li>Style
+                    <ul>
+                        <li id="style-elements-white">Éléments en blanc</li>
+                        <li id="style-elements-color">Éléments en couleur</li>
+                        <li id="style-toggle-shadows">Ombres (Non implémenté)</li>
+                    </ul>
+                </li>
+                <li>Aide
+                    <ul>
+                        <li id="help-about">À propos</li>
+                        <li id="help-docs">Aide (Non implémenté)</li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
 
-        <div class="toolbar-group">
-             <label for="assise-select">Assise:</label>
-             <select id="assise-select"></select>
-             <button id="btn-create-assise" title="Créer Assise à partir de l'élément sélectionné">➕ Assise</button>
+        <div class="toolbar">
+            <button id="btn-select" title="Sélectionner (S)">S</button>
+            <button id="btn-add" title="Ajouter (A)">A</button>
+            <button id="btn-move" title="Déplacer (M)">M</button>
+            <button id="btn-rotate" title="Pivoter (R)">R</button>
+            <button id="btn-duplicate" title="Dupliquer (D)">D</button>
+            <button id="btn-delete" title="Supprimer (Suppr)">Suppr</button>
+            <select id="element-type-select"></select>
         </div>
-
-        <div id="custom-element-group">
-            <label for="custom-name">Nom:</label> <input type="text" id="custom-name" value="Perso">
-            <label for="custom-width">L(cm):</label> <input type="number" id="custom-width" value="20" step="0.1" min="0.1">
-            <label for="custom-height">H(cm):</label> <input type="number" id="custom-height" value="10" step="0.1" min="0.1">
-            <label for="custom-depth">P(cm):</label> <input type="number" id="custom-depth" value="10" step="0.1" min="0.1">
-        </div>
-        <span class="info-text">Mode: Sélection / Navigation</span>
     </div>
 
-    <!-- Left Sidebar -->
-    <div id="left-sidebar">
-        <div id="left-sidebar-header">
-            <span>Outils</span>
-            <button id="toggle-left-sidebar" title="Afficher/Masquer le menu">◀</button>
-        </div>
-        <div id="left-sidebar-content">
-            <!-- Add content for the left sidebar here -->
-            <p>Contenu du menu latéral gauche.</p>
-        </div>
-    </div>
-
-    <div id="viewport-container">
-         <div id="watermark">MurSimulateur3D v.0.0.1 par J.Brohez</div>
-         <div id="placement-controls">
-             <div id="dpad-container">
-                 <div id="placement-rotation">
-                     <button id="placement-rotate-left" class="icon-rotate-left" title="Rotation Gauche 45° (Q)"></button>
-                     <button id="placement-rotate-right" class="icon-rotate-right" title="Rotation Droite 45° (E)"></button>
-                 </div>
-                 <div id="dpad">
-                     <button id="dpad-up" title="Avancer (Z-)">▲</button>
-                     <button id="dpad-left" title="Gauche (X-)">◀</button>
-                     <button id="dpad-right" title="Droite (X+)">▶</button>
-                     <button id="dpad-down" title="Reculer (Z+)">▼</button>
-                 </div>
-                 <div id="placement-vertical">
-                      <button id="dpad-up-y" class="icon-dpad-up" title="Monter (Y+/PgUp)"></button>
-                      <button id="dpad-down-y" class="icon-dpad-down" title="Descendre (Y-/PgDn)"></button>
-                 </div>
-             </div>
-             <div id="placement-actions">
-                 <button id="btn-place-element" class="icon-confirm" title="Placer Élément (Entrée)"></button>
-                 <button id="btn-confirm-move" class="icon-confirm" title="Confirmer Déplacement (Entrée)"></button>
-                 <button id="btn-cancel-placement" class="icon-cancel" title="Annuler Placement (Échap)"></button>
-                 <button id="btn-cancel-move" class="icon-cancel" title="Annuler Déplacement (Échap)"></button>
-             </div>
-         </div>
-         <div id="context-menu">
-             <button id="ctx-rotate"><span class="icon ctx-icon-rotate"></span>Rotation 45°</button>
-             <button id="ctx-move"><span class="icon ctx-icon-move"></span>Déplacer</button>
-             <button id="ctx-duplicate"><span class="icon ctx-icon-duplicate"></span>Dupliquer</button>
-             <button id="ctx-delete"><span class="icon ctx-icon-delete"></span>Supprimer</button>
-         </div>
-    </div>
-
-    <!-- Right Sidebar -->
-    <div id="right-sidebar">
-        <div id="sidebar-header">
-            <span>Menu</span>
-            <button id="toggle-sidebar" title="Afficher/Masquer le menu">▶</button>
-        </div>
-        <div id="sidebar-content">
-            <div class="sidebar-section">
-                <div class="section-header">
-                    <span>Titre de l'ouvrage</span>
-                    <button class="toggle-section" title="Afficher/Masquer">▼</button>
-                </div>
-                <div class="section-content">
-                    <textarea id="titre-ouvrage" placeholder="Entrez le titre de l'ouvrage ici..."></textarea>
-                </div>
+    <div class="main-container">
+        <button class="sidebar-toggle" id="toggle-left-sidebar" title="Basculer barre latérale gauche">&lt;</button>
+        <div class="left-sidebar" id="left-sidebar">
+            <h3 style="color:#1abc9c; margin-top:0;">Outils</h3>
+            <div class="form-group">
+                <label for="custom-width">Largeur personnalisée (cm):</label>
+                <input type="number" id="custom-width" value="20" min="1">
             </div>
-            <div class="sidebar-section">
-                <div class="section-header">
-                    <span>Prénom et Nom du dessinateur</span>
-                    <button class="toggle-section" title="Afficher/Masquer">▼</button>
-                </div>
-                <div class="section-content">
-                    <label for="prenom-dessinateur">Prénom:</label>
-                    <input type="text" id="prenom-dessinateur" placeholder="Entrez le prénom">
-                    <label for="nom-dessinateur">Nom:</label>
-                    <input type="text" id="nom-dessinateur" placeholder="Entrez le nom">
-                </div>
+            <div class="form-group">
+                <label for="custom-height">Hauteur personnalisée (cm):</label>
+                <input type="number" id="custom-height" value="10" min="1">
             </div>
-            <div class="sidebar-section">
-                <div class="section-header">
-                    <span>Mode opératoire</span>
-                    <button class="toggle-section" title="Afficher/Masquer">▼</button>
-                </div>
-                <div class="section-content">
-                    <textarea id="mode-operatoire" placeholder="Entrez le mode opératoire ici..."></textarea>
-                </div>
+            <div class="form-group">
+                <label for="custom-depth">Profondeur personnalisée (cm):</label>
+                <input type="number" id="custom-depth" value="10" min="1">
+            </div>
+            <div class="form-group">
+                <label for="custom-name">Nom personnalisé:</label>
+                <input type="text" id="custom-name" value="Bloc Perso">
+            </div>
+            <button id="btn-add-custom" style="background-color: #1abc9c; color:white; width:100%; padding:10px;">Ajouter élément personnalisé</button>
+
+            <h4 style="color:#1abc9c; margin-top:20px;">Gestion des Assises</h4>
+            <div class="form-group">
+                <label for="assise-level">Niveau d'assise (Y cm):</label>
+                <input type="number" id="assise-level" value="0" step="1">
+            </div>
+            <button id="btn-go-to-assise" style="width:100%; padding:8px;">Aller à l'assise</button>
+            <p style="font-size:0.85em; color:#bdc3c7;">Prochain élément sera placé à cette hauteur Y.</p>
+        </div>
+
+        <div class="viewport-container">
+            <canvas id="three-canvas"></canvas>
+            <div class="watermark">SimulateurMur3D</div>
+            <div class="dpad-controls">
+                <button id="dpad-rot-left" title="Rotation Gauche (Q)">↺</button>
+                <button id="dpad-el-up" title="Élément Haut (PageUp)">Y ▲</button>
+                <button id="dpad-rot-right" title="Rotation Droite (E)">↻</button>
+
+                <button id="dpad-el-left" title="Élément Gauche (Flèche gauche)">X ◄</button>
+                <button id="dpad-ok" title="Confirmer (Entrée)">OK</button>
+                <button id="dpad-el-right" title="Élément Droite (Flèche droite)">► X</button>
+
+                <button id="dpad-el-backward" title="Élément Arrière (Flèche bas)">Z ▼</button>
+                <button id="dpad-el-down" title="Élément Bas (PageDown)">Y ▼</button>
+                <button id="dpad-el-forward" title="Élément Avant (Flèche haut)">Z ▲</button>
             </div>
         </div>
+
+        <button class="sidebar-toggle" id="toggle-right-sidebar" title="Basculer barre latérale droite">&gt;</button>
+        <div class="right-sidebar" id="right-sidebar">
+            <h3 style="color:#1abc9c; margin-top:0;">Métadonnées</h3>
+            <div class="form-group">
+                <label for="meta-title">Titre de l'ouvrage:</label>
+                <input type="text" id="meta-title" value="Mon Mur">
+            </div>
+            <div class="form-group">
+                <label for="meta-drafter">Dessinateur:</label>
+                <input type="text" id="meta-drafter" value="Utilisateur">
+            </div>
+            <div class="form-group">
+                <label for="meta-mode">Mode opératoire:</label>
+                <textarea id="meta-mode">Placer les éléments sur la grille.</textarea>
+            </div>
+
+            <div class="element-counter-container">
+                <h4>Compteur d'éléments</h4>
+                <table id="element-counter-table">
+                    <thead>
+                        <tr><th>Type</th><th>Quantité</th></tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
