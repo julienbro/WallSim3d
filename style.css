@@ -1,411 +1,310 @@
-/* Styles CSS (ajout contrôles Assise + DPad Y) */
-        html, body { overscroll-behavior: none; margin: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Inter', sans-serif; }
-        body { display: flex; flex-direction: column; background-color: #f0f0f0; }
-        #toolbar { background-color: #e9ecef; padding: 8px 10px; border-bottom: 1px solid #dee2e6; display: flex; gap: 8px; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; flex-shrink: 0; z-index: 10; }
-        #toolbar button, #toolbar select, #toolbar input[type="number"], #toolbar input[type="text"] { padding: 8px 10px; border: 1px solid #ced4da; background-color: #ffffff; color: #495057; cursor: pointer; border-radius: 5px; font-size: 14px; transition: background-color 0.2s ease, border-color 0.2s ease; height: 38px; box-sizing: border-box; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-        #toolbar button.active { background-color: #007bff; color: white; border-color: #0056b3; font-weight: bold; }
-        #toolbar button.disabled, #toolbar button:disabled { background-color: #e9ecef; border-color: #ced4da; color: #adb5bd; cursor: not-allowed; }
-        #toolbar button:hover:not(.active):not(:disabled) { background-color: #f1f3f5; border-color: #adb5bd; }
-        #toolbar label { font-size: 14px; margin-left: 4px; margin-right: 2px; color: #495057; white-space: nowrap; align-self: center; }
-        #toolbar input[type="number"] { width: 65px; cursor: text; }
-        #toolbar input[type="text"] { width: 100px; cursor: text; }
-        #viewport-container { flex-grow: 1; position: relative; overflow: hidden; background-color: #cccccc; -webkit-tap-highlight-color: transparent; cursor: default; }
-        #viewport-container.crosshair-cursor { cursor: crosshair; }
-        #viewport-container.pointer-cursor { cursor: pointer; }
-        canvas { display: block; }
-        .info-text { font-size: 12px; color: #6c757d; padding: 0 10px; flex-basis: 100%; text-align: center; margin-top: 5px; order: 99; }
-        #element-select, #assise-select { min-width: 150px; flex-grow: 1; max-width: 250px; } /* Ajustement taille selects */
-        .toolbar-group { display: flex; gap: 4px; align-items: center; border-left: 1px solid #ccc; padding-left: 8px; margin-left: 8px; }
-        #custom-element-group { display: none; gap: 6px; align-items: center; padding: 5px; background-color: #f8f9fa; border: 1px dashed #adb5bd; border-radius: 5px; margin-left: 10px; flex-wrap: wrap; }
-        #custom-element-group label { margin-left: 0; margin-right: 2px; } #custom-element-group input { flex-grow: 0; }
-        /* Icons using Unicode characters for simplicity in this example */
-        .icon-select::before { content: "👆"; margin-right: 4px; } .icon-add::before { content: "➕"; margin-right: 4px; } .icon-move::before { content: "↔️"; margin-right: 4px; } .icon-rotate::before { content: "🔄"; margin-right: 4px; } .icon-duplicate::before { content: "📋"; margin-right: 4px; } .icon-delete::before { content: "🗑️"; margin-right: 4px; } .icon-orbit-left::before { content: "↺"; } .icon-orbit-right::before { content: "↻"; } .icon-zoom-in::before { content: "➕"; } .icon-zoom-out::before { content: "➖"; } .icon-confirm::before { content: "✅"; } .icon-cancel::before { content: "❌"; } .icon-rotate-left::before { content: "↺"; font-size: 18px; } .icon-rotate-right::before { content: "↻"; font-size: 18px; } .icon-dpad-up::before { content: "⬆️"; font-size: 18px; } /* Icones DPad Y */ .icon-dpad-down::before { content: "⬇️"; font-size: 18px; }
-        #watermark { position: absolute; bottom: 10px; left: 10px; font-size: 10px; color: rgba(0, 0, 0, 0.4); background-color: rgba(255, 255, 255, 0.3); padding: 2px 5px; border-radius: 3px; pointer-events: none; z-index: 5; }
-        #placement-controls { position: absolute; bottom: 20px; left: 20px; display: none; flex-direction: column; align-items: center; gap: 10px; background-color: rgba(233, 236, 239, 0.8); padding: 15px; border-radius: 10px; z-index: 20; touch-action: none; }
-        #dpad-container { display: flex; align-items: center; gap: 15px; }
-        #dpad { display: grid; grid-template-columns: 40px 40px 40px; grid-template-rows: 40px 40px 40px; gap: 5px; justify-items: center; align-items: center; }
-        #dpad button, #placement-rotation button, #placement-vertical button { /* Style commun DPad, Rotation, Vertical */ width: 40px; height: 40px; font-size: 20px; line-height: 40px; text-align: center; padding: 0; border: 1px solid #adb5bd; background-color: #f8f9fa; border-radius: 5px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
-        #dpad button:hover, #placement-rotation button:hover, #placement-vertical button:hover { background-color: #e2e6ea; }
-        #dpad button:active, #placement-rotation button:active, #placement-vertical button:active { background-color: #ced4da; }
-        #dpad-up { grid-column: 2; grid-row: 1; } #dpad-left { grid-column: 1; grid-row: 2; } #dpad-right { grid-column: 3; grid-row: 2; } #dpad-down { grid-column: 2; grid-row: 3; }
-        #placement-rotation, #placement-vertical { display: flex; flex-direction: column; gap: 5px; } /* Vertical et Rotation en colonne */
-        #placement-actions { display: flex; gap: 10px; margin-top: 10px; }
-        #placement-actions button { width: 50px; height: 50px; font-size: 24px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #btn-place-element, #btn-confirm-move { background-color: #28a745; } #btn-cancel-placement, #btn-cancel-move { background-color: #dc3545; }
-        #btn-place-element:hover, #btn-confirm-move:hover { background-color: #218838; } #btn-cancel-placement:hover, #btn-cancel-move:hover { background-color: #c82333; }
-        #context-menu { position: absolute; display: none; flex-direction: column; gap: 5px; background-color: white; border: 1px solid #ccc; border-radius: 5px; padding: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 30; min-width: 120px; }
-        #context-menu button { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 10px; font-size: 14px; text-align: left; background-color: transparent; border: none; border-radius: 3px; cursor: pointer; color: #343a40; }
-        #context-menu button:hover { background-color: #e9ecef; } #context-menu button .icon::before { font-size: 16px; display: inline-block; width: 20px; text-align: center; }
-        /* Context Menu Icons */
-        .ctx-icon-rotate::before { content: "🔄"; } .ctx-icon-move::before { content: "↔️"; } .ctx-icon-duplicate::before { content: "📋"; } .ctx-icon-delete::before { content: "🗑️"; }
-
-#file-bar {
-    background-color: #e9ecef;
-    padding: 8px 10px;
-    border-bottom: 1px solid #dee2e6;
-    display: flex;
-    align-items: center;
-    position: relative;
-    z-index: 20;
-}
-
-#file-bar .menu {
-    position: relative;
-}
-
-#file-bar .menu > button {
-    background: none;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 5px 10px;
-    color: #495057;
-    transition: background-color 0.2s ease;
-}
-
-#file-bar .menu > button:hover {
-    background-color: #f1f3f5;
-}
-
-#file-bar .menu .dropdown {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background-color: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
-    z-index: 30;
-    min-width: 150px;
-}
-
-#file-bar .menu:hover .dropdown {
-    display: block;
-}
-
-#file-bar .menu .dropdown button {
-    width: 100%;
-    background: none;
-    border: none;
-    padding: 8px 10px;
-    text-align: left;
-    font-size: 14px;
-    cursor: pointer;
-    color: #495057;
-    transition: background-color 0.2s ease;
-}
-
-#file-bar .menu .dropdown button:hover {
-    background-color: #f1f3f5;
-}
-
-#right-sidebar {
-    position: absolute;
-    top: 120px; /* Increased top position to ensure the main title is visible */
-    right: 0;
-    width: 240px; /* Reduced width to allow 20% visibility of the 3D viewport */
-    height: 90%; /* Set height to 90% */
-    background-color: #f4f4f4;
-    border-left: 1px solid #ccc;
+/* Styles globaux et pour le corps de la page */
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif; /* Police Inter pour un look moderne */
     display: flex;
     flex-direction: column;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, width 0.3s ease; /* Smooth transition for collapsing */
-    transform: translateX(0); /* Default position */
-    opacity: 1; /* Ensure visible when not collapsed */
-    overflow: hidden; /* Ensure hidden content when collapsed */
+    height: 100vh;
+    overflow: hidden; /* Empêche le défilement de la page entière */
+    background-color: #2c3e50; /* Bleu marine foncé pour le fond */
+    color: #ecf0f1; /* Gris clair pour le texte par défaut */
 }
 
-#right-sidebar.collapsed {
-    width: 40px; /* Keep the collapsed width unchanged */
-    transform: none; /* Prevent full translation out of view */
-    opacity: 1; /* Ensure the toggle button and text are visible */
-    pointer-events: auto; /* Allow interactions */
+/* Styles pour la barre supérieure principale */
+.top-bar {
+    background-color: #34495e; /* Bleu marine légèrement plus clair */
+    padding: 8px 15px; /* Espacement interne */
+    display: flex; /* Alignement horizontal des éléments enfants */
+    align-items: center; /* Centrage vertical des éléments enfants */
+    border-bottom: 2px solid #2c3e50; /* Bordure inférieure pour la séparation */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Ombre portée pour effet de profondeur */
 }
 
-#right-sidebar.collapsed-right {
-    transform: translateX(calc(100% - 40px)); /* Leave a 40px strip visible */
-    width: 40px; /* Set the visible strip width */
-    pointer-events: auto; /* Allow interactions with the visible strip */
-}
-
-#right-sidebar.collapsed-right #sidebar-header {
-    transform: translateX(-100%); /* Keep the toggle button visible */
-    pointer-events: auto; /* Allow interactions with the toggle button */
-}
-
-#right-sidebar.collapsed #sidebar-content {
-    display: none; /* Hide the sidebar content */
-}
-
-#right-sidebar.collapsed #sidebar-header {
-    display: flex; /* Keep the header visible */
-    justify-content: center; /* Center the toggle button */
-    align-items: center;
-    padding: 0; /* Remove extra padding */
-    background-color: #ddd;
-    border-bottom: none; /* Remove the bottom border */
-    writing-mode: vertical-rl; /* Rotate text vertically */
-    text-align: center;
-    transform: rotate(180deg); /* Flip text for proper vertical orientation */
-    font-size: 14px; /* Adjust font size for readability */
-    white-space: nowrap; /* Prevent text wrapping */
-}
-
-#toggle-sidebar {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: #ddd;
-    border-bottom: 1px solid #ccc;
-    font-weight: bold;
-}
-
-#sidebar-content {
-    flex: 1;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-}
-
-#mode-operatoire {
-    width: 100%;
-    height: auto;
-    resize: none;
-    border: 1px solid #ccc;
-    padding: 10px;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    box-sizing: border-box;
-    line-height: 1.5; /* Adjust line height for better readability */
-    min-height: calc(1.5em * 15); /* Set height to 15 lines */
-    overflow-y: auto; /* Add scroll if content exceeds the height */
-    white-space: pre-wrap; /* Ensure line breaks are preserved */
-    overflow-wrap: break-word; /* Handle long words gracefully */
-}
-
-#titre-ouvrage {
-    width: 100%;
-    margin-bottom: 10px;
-    resize: none;
-    border: 1px solid #ccc;
-    padding: 10px;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    box-sizing: border-box;
-    white-space: pre-wrap; /* Ensure line breaks are preserved */
-    overflow-wrap: break-word; /* Handle long words gracefully */
-}
-
-.sidebar-section {
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #ddd;
-    padding: 10px;
-    font-weight: bold;
-    cursor: pointer;
-    user-select: none; /* Prevent text selection on click */
-}
-
-.section-content {
-    max-height: 500px; /* Set a maximum height for expanded sections */
-    overflow: hidden; /* Hide content that exceeds the max height */
-    transition: max-height 0.3s ease, opacity 0.3s ease; /* Smooth transition */
-    opacity: 1; /* Fully visible when expanded */
-    display: block; /* Ensure content is displayed when expanded */
-}
-
-.section-content.collapsed {
-    max-height: 0; /* Collapse the section */
-    opacity: 0; /* Fade out the content */
-    overflow: hidden; /* Hide content when collapsed */
-    display: none; /* Ensure content is hidden when collapsed */
-}
-
-.toggle-section {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-#right-sidebar .sidebar-section .section-content {
-    display: block;
-    transition: max-height 0.3s ease, opacity 0.3s ease;
-}
-
-#right-sidebar .sidebar-section.collapsed .section-content {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-}
-
-#left-sidebar {
-    position: absolute;
-    top: 50px; /* Adjust to match the height of the horizontal toolbar */
-    left: 0;
-    width: 300px;
-    height: calc(100% - 50px); /* Subtract the toolbar height */
-    background-color: #f4f4f4;
-    border-right: 1px solid #ccc;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-    transform: translateX(0);
-}
-
-#left-sidebar.collapsed {
-    transform: translateX(-100%);
-}
-
-#left-sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: #ddd;
-    border-bottom: 1px solid #ccc;
-    font-weight: bold;
-}
-
-#toggle-left-sidebar {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-#metre-section {
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-#metre-section .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #ddd;
-    padding: 10px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-#metre-section .section-content {
-    padding: 10px;
-    display: block;
-    transition: max-height 0.3s ease;
-}
-
-#metre-section .section-content.collapsed {
-    display: none;
-}
-
-#metre-list {
-    list-style: none;
+/* Styles pour la barre de menu */
+.menu-bar > ul {
+    list-style: none; /* Supprime les puces des listes */
     padding: 0;
     margin: 0;
+    display: flex; /* Alignement horizontal des éléments de menu */
 }
 
-#metre-list li {
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: #333;
+.menu-bar > ul > li {
+    position: relative; /* Pour positionner les sous-menus par rapport à cet élément */
+    padding: 10px 15px;
+    cursor: pointer; /* Curseur main pour indiquer l'interactivité */
+    font-size: 0.95em;
+    border-radius: 5px; /* Coins arrondis */
+    transition: background-color 0.2s ease; /* Transition douce pour le survol */
+}
+.menu-bar > ul > li:hover {
+    background-color: #4a6278; /* Couleur de fond au survol */
 }
 
-@media (max-width: 768px) {
-    #right-sidebar {
-        top: auto; /* Reset top position */
-    }
-
-    #toolbar {
-        flex-wrap: wrap; /* Allow toolbar to wrap to multiple lines */
-    }
-
-    #right-sidebar {
-        top: calc(var(--toolbar-height, 50px) + 10px); /* Adjust top dynamically based on toolbar height */
-    }
+/* Styles pour les sous-menus */
+.menu-bar > ul > li ul {
+    display: none; /* Caché par défaut */
+    position: absolute; /* Positionnement absolu par rapport au parent 'li' */
+    top: 100%; /* Apparaît juste en dessous de l'élément parent */
+    left: 0;
+    background-color: #3b5266; /* Couleur de fond du sous-menu */
+    list-style: none;
+    padding: 5px 0; /* Espacement vertical interne */
+    margin: 0;
+    min-width: 180px; /* Largeur minimale du sous-menu */
+    z-index: 1000; /* Assure que le sous-menu est au-dessus des autres éléments */
+    border: 1px solid #4a6278; /* Bordure du sous-menu */
+    border-radius: 0 0 5px 5px; /* Coins arrondis seulement en bas */
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15); /* Ombre portée pour le sous-menu */
+}
+.menu-bar > ul > li:hover > ul {
+    display: block; /* Affiche le sous-menu au survol de l'élément parent */
+}
+.menu-bar > ul > li ul li {
+    padding: 10px 15px;
+    transition: background-color 0.2s ease;
+}
+.menu-bar > ul > li ul li:hover {
+    background-color: #527089; /* Couleur de fond des items du sous-menu au survol */
 }
 
-#element-counter {
-    position: fixed; /* Ensure it stays visible on the screen */
-    bottom: 20px; /* Adjust position from the bottom */
-    right: 20px; /* Adjust position from the right */
-    background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
-    border: 1px solid #ccc; /* Add a border for visibility */
-    border-radius: 5px; /* Rounded corners */
-    padding: 10px; /* Add padding for spacing */
-    font-size: 14px; /* Adjust font size */
-    color: #333; /* Text color */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-    z-index: 100; /* Ensure it appears above other elements */
+/* Styles pour la barre d'outils */
+.toolbar {
+    margin-left: 25px; /* Marge à gauche pour séparer du menu */
+    display: flex; /* Alignement horizontal des boutons */
+    gap: 8px; /* Espacement entre les boutons */
+}
+
+.toolbar button, .toolbar select, .toolbar input {
+    padding: 8px 12px;
+    background-color: #4a6278; /* Couleur de fond des contrôles */
+    color: #ecf0f1; /* Couleur du texte */
+    border: 1px solid #527089; /* Bordure */
+    border-radius: 5px; /* Coins arrondis */
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease; /* Transitions douces */
+}
+.toolbar button:hover, .toolbar select:hover {
+    background-color: #527089; /* Couleur de fond au survol */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Légère ombre au survol */
+}
+.toolbar input[type="number"] {
+    width: 60px; /* Largeur spécifique pour les champs numériques */
+}
+.toolbar button.active { /* Style pour le bouton d'outil actuellement sélectionné */
+    background-color: #1abc9c; /* Vert pour l'outil actif */
+    color: #fff; /* Texte blanc pour contraste */
+    border-color: #16a085; /* Bordure assortie */
+}
+
+/* Styles pour le conteneur principal de l'application */
+.main-container {
+    display: flex; /* Permet d'organiser les barres latérales et la vue 3D côte à côte */
+    flex-grow: 1; /* Prend toute la hauteur restante */
+    position: relative; /* Pour le positionnement des boutons de bascule des barres latérales */
+}
+
+/* Styles pour les barres latérales (gauche et droite) */
+.left-sidebar, .right-sidebar {
+    background-color: #34495e; /* Couleur de fond */
+    padding: 20px; /* Espacement interne */
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    max-width: 300px;
-    overflow: hidden;
+    flex-direction: column; /* Éléments internes empilés verticalement */
+    gap: 15px; /* Espacement entre les éléments internes */
+    overflow-y: auto; /* Barre de défilement si le contenu dépasse */
+    transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease; /* Transitions pour l'ouverture/fermeture */
+    box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Ombre subtile */
 }
 
-#element-counter .element-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    color: #555;
+.left-sidebar {
+    width: 280px; /* Largeur initiale */
+    border-right: 2px solid #2c3e50; /* Bordure de séparation */
+}
+.left-sidebar.collapsed, .right-sidebar.collapsed { /* Styles lorsque la barre est repliée */
+    width: 0; /* Largeur nulle pour cacher */
+    padding: 0 20px; /* Maintient le padding horizontal pour éviter le saut de contenu */
+    opacity: 0; /* Rendre invisible */
+    overflow: hidden; /* Cache le contenu qui dépasse */
 }
 
-#element-counter .element-counter-table {
+.right-sidebar {
+    width: 280px; /* Largeur initiale */
+    border-left: 2px solid #2c3e50; /* Bordure de séparation */
+}
+
+/* Styles pour les boutons de bascule des barres latérales */
+.sidebar-toggle {
+    position: absolute; /* Positionnement par rapport au 'main-container' */
+    top: 50%; /* Centré verticalement */
+    transform: translateY(-50%); /* Ajustement fin du centrage vertical */
+    background-color: #4a6278; /* Couleur de fond */
+    color: white;
+    border: none;
+    padding: 15px 8px; /* Espacement interne */
+    cursor: pointer;
+    z-index: 500; /* Au-dessus du canvas mais en dessous des menus déroulants */
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+.sidebar-toggle:hover {
+    background-color: #527089; /* Couleur au survol */
+}
+#toggle-left-sidebar { left: 0; border-radius: 0 5px 5px 0; } /* Position et coins arrondis spécifiques */
+#toggle-right-sidebar { right: 0; border-radius: 5px 0 0 5px; } /* Position et coins arrondis spécifiques */
+
+/* Ajustements de position des boutons de bascule lorsque les barres sont repliées */
+.left-sidebar.collapsed + .viewport-container > #toggle-left-sidebar { left: 0; }
+.right-sidebar.collapsed ~ #toggle-right-sidebar { right: 0px; }
+
+/* Styles pour le conteneur de la vue 3D */
+.viewport-container {
+    flex-grow: 1; /* Prend toute la largeur restante */
+    position: relative; /* Pour le positionnement du filigrane et du DPad */
+    display: flex; /* Pour que le canvas prenne toute la place */
+    background-color: #3d566e; /* Couleur de fond légèrement différente */
+}
+
+#three-canvas { /* Le canvas où Three.js dessine */
+    display: block; /* Supprime l'espace en dessous (comportement inline) */
     width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-    color: #555;
+    height: 100%;
+    outline: none; /* Supprime la bordure de focus sur le canvas */
 }
 
-#element-counter .element-counter-table th,
-#element-counter .element-counter-table td {
-    border: 1px solid #ddd;
-    padding: 5px;
-    text-align: left;
+/* Styles pour le filigrane */
+.watermark {
+    position: absolute; /* Positionnement par rapport au 'viewport-container' */
+    bottom: 15px;
+    left: 15px;
+    color: rgba(236, 240, 241, 0.4); /* Couleur semi-transparente */
+    font-size: 0.9em;
+    pointer-events: none; /* N'interfère pas avec les clics de souris */
 }
 
-#element-counter .element-counter-table th {
-    background-color: #f4f4f4;
+/* Styles pour les contrôles DPad */
+.dpad-controls {
+    position: absolute; /* Positionnement par rapport au 'viewport-container' */
+    bottom: 25px;
+    right: 25px;
+    display: grid; /* Utilisation de CSS Grid pour l'agencement */
+    grid-template-columns: repeat(3, 45px); /* 3 colonnes de 45px */
+    grid-template-rows: repeat(3, 45px);    /* 3 lignes de 45px */
+    gap: 8px; /* Espacement entre les boutons du DPad */
+    z-index: 10; /* Au-dessus du canvas */
+}
+.dpad-controls button {
+    background-color: rgba(74, 98, 120, 0.85); /* Couleur de fond semi-transparente */
+    color: white;
+    border: 1px solid #527089;
+    border-radius: 8px; /* Coins plus arrondis */
+    font-size: 1.1em; /* Taille de police ajustée pour les icônes/texte */
     font-weight: bold;
+    display: flex;
+    align-items: center; /* Centrage vertical du contenu */
+    justify-content: center; /* Centrage horizontal du contenu */
+    transition: background-color 0.2s ease;
+    padding: 2px; /* Espacement interne pour le texte */
+}
+.dpad-controls button:hover {
+    background-color: rgba(82, 112, 137, 0.95); /* Couleur au survol */
+}
+#dpad-ok { /* Style spécifique pour le bouton OK */
+    font-size: 1.3em;
+    background-color: #1abc9c; /* Couleur verte distinctive */
+}
+#dpad-ok:hover {
+    background-color: #16a085; /* Couleur au survol pour OK */
+}
+.dpad-empty { visibility: hidden; } /* Pour les cellules vides de la grille DPad */
+
+/* Styles pour le conteneur du compteur d'éléments */
+.element-counter-container {
+    margin-top: 20px; /* Marge supérieure */
+}
+.element-counter-container h4 { 
+    margin-top:0; 
+    margin-bottom: 8px; 
+    font-size:1.1em; 
+    color: #1abc9c; /* Couleur d'accentuation */
+}
+#element-counter-table { /* Tableau du compteur */
+    width: 100%;
+    border-collapse: collapse; /* Fusionne les bordures des cellules */
+    font-size: 0.9em;
+}
+#element-counter-table th, #element-counter-table td {
+    border: 1px solid #4a6278; /* Bordure des cellules */
+    padding: 6px 8px; /* Espacement interne des cellules */
+    text-align: left; /* Alignement du texte */
+}
+#element-counter-table th { /* En-têtes du tableau */
+    background-color: #3b5266; /* Couleur de fond */
+    color: #ecf0f1;
+}
+#element-counter-table tr:nth-child(even) { /* Lignes paires pour meilleure lisibilité */
+    background-color: #3f586f;
 }
 
-#element-counter .element-counter-table {
-    display: block;
-    overflow-y: auto;
-    max-height: 200px; /* Adjust as needed */
+/* Styles pour les groupes de formulaires (label + input) */
+.form-group { 
+    margin-bottom: 15px; /* Marge inférieure */
+}
+.form-group label { 
+    display: block; /* Label sur sa propre ligne */
+    margin-bottom: 5px; 
+    font-size: 0.9em; 
+    color: #bdc3c7; /* Couleur de label légèrement plus claire */
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: calc(100% - 16px); /* Largeur prenant en compte le padding */
+    padding: 8px; /* Espacement interne */
+    background-color: #2c3e50; /* Couleur de fond des champs */
+    color: #ecf0f1; /* Couleur du texte */
+    border: 1px solid #4a6278; /* Bordure */
+    border-radius: 4px; /* Coins arrondis */
+    font-size: 0.95em;
+}
+.form-group textarea { 
+    min-height: 70px; /* Hauteur minimale pour les zones de texte */
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { /* Style au focus */
+    border-color: #1abc9c; /* Bordure de couleur d'accentuation */
+    box-shadow: 0 0 5px rgba(26, 188, 156, 0.5); /* Ombre portée subtile */
+    outline: none; /* Supprime l'outline par défaut du navigateur */
 }
 
-#element-counter .element-counter-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+/* Styles pour les messages d'alerte personnalisés */
+.custom-alert {
+    position: fixed; /* Positionnement fixe par rapport à la fenêtre */
+    top: 20px; /* Distance du haut */
+    left: 50%; /* Centré horizontalement */
+    transform: translateX(-50%); /* Ajustement fin du centrage horizontal */
+    background-color: #e74c3c; /* Rouge pour les erreurs par défaut */
+    color: white;
+    padding: 15px 25px; /* Espacement interne */
+    border-radius: 5px; /* Coins arrondis */
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2); /* Ombre portée */
+    z-index: 2000; /* Au-dessus de tous les autres éléments */
+    font-size: 1em;
+    display: none; /* Caché par défaut */
+}
+.custom-alert.success { /* Style pour les messages de succès */
+     background-color: #2ecc71; /* Vert */
+}
+.custom-alert.info { /* Style pour les messages d'information */
+     background-color: #3498db; /* Bleu */
 }
 
-#element-counter .element-counter-table tr:hover {
-    background-color: #f1f1f1;
+/* Test temporaire pour vérifier le chargement des styles */
+body::after {
+    content: "Styles chargés correctement";
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background-color: #1abc9c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    z-index: 9999;
 }
