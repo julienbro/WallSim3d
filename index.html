@@ -10,67 +10,81 @@
     <style>
         /* --- GENERAL STYLES --- */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             margin: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden; /* Empêche les barres de défilement sur le corps */
-            font-size: 14px;
-            background-color: #f0f0f0; /* Couleur de fond générale */
+            overflow: hidden; 
+            font-size: 13px; 
+            background-color: #E5E5E5; 
         }
 
-        button, select, input {
+        button, select, input[type="text"], input[type="number"] {
             font-size: inherit;
-            border-radius: 4px; /* Coins arrondis pour les éléments interactifs */
+            border-radius: 3px; 
+            border: 1px solid #B0B0B0; 
+            padding: 5px 8px;
+            background-color: #F5F5F5; 
+            color: #333333; 
+            margin: 2px;
+        }
+        button:hover {
+            background-color: #E0E0E0; 
+            border-color: #909090;
+        }
+        select {
+            padding: 4px 6px;
         }
 
         /* --- HEADER & MENUS --- */
         header {
-            background-color: #2c3e50; /* Bleu nuit */
-            color: white;
+            background-color: #F5F5F5; 
+            color: #333333; 
             padding: 0;
             display: flex;
             flex-direction: column;
-            z-index: 1000; /* Au-dessus de tout */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-bottom: 1px solid #D1D1D1;
         }
 
         #main-menu {
             display: flex;
-            border-bottom: 1px solid #34495e; /* Bleu plus foncé pour séparateur */
+            background-color: #EAEAEA; 
         }
 
         .menu-item {
             position: relative;
-            padding: 12px 18px; /* Plus d'espace */
+            padding: 8px 15px; 
             cursor: pointer;
             transition: background-color 0.2s ease;
+            border-right: 1px solid #D1D1D1;
         }
         .menu-item:hover {
-            background-color: #34495e; /* Bleu plus foncé au survol */
+            background-color: #D5D5D5; 
         }
         .dropdown-content {
             display: none;
             position: absolute;
-            background-color: #ecf0f1; /* Gris clair */
-            min-width: 220px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            background-color: #F5F5F5; 
+            min-width: 200px;
+            box-shadow: 0px 4px 8px 0px rgba(0,0,0,0.15);
             z-index: 1;
             left: 0;
             top: 100%;
-            border-radius: 0 0 4px 4px;
-            overflow: hidden; /* Pour que les coins arrondis s'appliquent aux enfants */
+            border: 1px solid #C0C0C0;
+            border-top: none;
         }
         .dropdown-content a {
-            color: #2c3e50; /* Texte bleu nuit */
-            padding: 12px 18px;
+            color: #333333; 
+            padding: 10px 15px;
             text-decoration: none;
             display: block;
             transition: background-color 0.2s ease;
         }
         .dropdown-content a:hover {
-            background-color: #bdc3c7; /* Gris moyen au survol */
+            background-color: #E0E0E0; 
         }
         .menu-item:hover .dropdown-content {
             display: block;
@@ -80,248 +94,215 @@
         #toolbar {
             display: flex;
             align-items: center;
-            padding: 10px 12px;
+            padding: 5px 10px; 
             flex-wrap: wrap;
-            background-color: #34495e; /* Bleu plus foncé */
-            /* border-bottom: 1px solid #2c3e50; */ /* Supprimé pour coller la barre d'aide */
+            background-color: #F0F0F0; 
         }
         #toolbar button, #toolbar select {
-            margin-right: 8px;
-            margin-bottom: 5px; /* Pour le wrapping */
-            padding: 8px 12px;
-            border: 1px solid #7f8c8d; /* Gris */
-            background-color: #5d6d7e; /* Bleu-gris */
-            color: white;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.2s ease;
+            margin-right: 5px;
+            margin-bottom: 3px; 
+            padding: 6px 10px; 
+            background-color: #EFEFEF;
+            border: 1px solid #BDBDBD;
+            color: #424242;
         }
         #toolbar button:hover, #toolbar select:hover {
-            background-color: #718093; /* Bleu-gris plus clair */
+            background-color: #DADADA;
+            border-color: #A0A0A0;
         }
         #toolbar input[type="number"], #toolbar input[type="text"] {
-            margin-right: 8px;
-            margin-bottom: 5px;
-            padding: 8px;
-            border: 1px solid #bdc3c7; /* Gris clair */
-            border-radius: 4px;
+            margin-right: 5px;
+            margin-bottom: 3px;
+            padding: 6px;
+            border: 1px solid #BDBDBD;
             background-color: #fff;
-            color: #333;
         }
         #toolbar input[type="number"] {
-            width: 75px;
+            width: 65px;
         }
         #custom-dims-container input, #vide-depth-container input {
             margin-left: 5px;
         }
-        #vide-depth-container label { margin-left: 10px;}
+        #vide-depth-container label { 
+            margin-left: 8px;
+            color: #424242; 
+        }
 
         .tool-active {
-            background-color: #3498db !important; /* Bleu vif */
-            color: white !important;
-            border-color: #2980b9 !important; /* Bleu plus foncé */
+            background-color: #C5E1A5 !important; 
+            color: #333333 !important;
+            border-color: #A5D6A7 !important; 
         }
 
         /* --- HELP BAR --- */
         #help-bar {
-            background-color: #4a6572; /* Bleu-gris plus foncé que la toolbar */
-            color: #e0e0e0; /* Gris clair pour le texte */
-            padding: 8px 12px;
-            font-size: 0.85em;
-            text-align: center;
-            border-bottom: 1px solid #2c3e50;
+            background-color: #FFFFFF; 
+            color: #555555; 
+            padding: 6px 12px;
+            font-size: 0.8em;
+            text-align: left; 
+            border-bottom: 1px solid #D0D0D0;
+            height: 20px; 
+            line-height: 20px; 
         }
 
 
         /* --- MAIN LAYOUT & SIDEBARS --- */
         main {
             display: flex;
-            flex-grow: 1;
-            overflow: hidden; /* Important pour que les sidebars n'affectent pas le scroll global */
+            flex-grow: 1; 
+            overflow: hidden; 
         }
 
         #left-sidebar, #right-sidebar {
-            width: 280px; /* Largeur augmentée */
-            background-color: #ecf0f1; /* Gris clair */
-            padding: 20px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+            box-sizing: border-box; 
+            width: 240px; 
+            background-color: #F0F0F0; 
+            padding: 10px; 
+            flex-shrink: 0; 
             overflow-y: auto; 
             z-index: 900; 
+            border-color: #C0C0C0; 
         }
-        #left-sidebar { border-right: 1px solid #bdc3c7; }
-        #right-sidebar { border-left: 1px solid #bdc3c7; }
-
-        #left-sidebar.collapsed {
-            width: 0;
-            padding-left: 0;
-            padding-right: 0;
-            border-right: none;
-            transform: translateX(-100%); /* Animation de repli */
-            opacity: 0;
+        #left-sidebar { 
+            border-right: 1px solid #D1D1D1; 
         }
-        #right-sidebar.collapsed {
-            width: 0;
-            padding-left: 0;
-            padding-right: 0;
-            border-left: none;
-            transform: translateX(100%); /* Animation de repli */
-            opacity: 0;
+        #right-sidebar { 
+            border-left: 1px solid #D1D1D1; 
         }
         
-        #toggle-left-sidebar, #toggle-right-sidebar {
-            position: absolute; /* Pour se superposer légèrement au viewport */
-            top: 50%;
-            transform: translateY(-50%);
-            background: #3498db; /* Bleu vif */
-            color: white;
-            border: none;
-            padding: 15px 5px;
-            cursor: pointer;
-            font-weight: bold;
-            z-index: 950; /* Au-dessus des sidebars mais sous le header */
-            border-radius: 0 5px 5px 0; /* Arrondi sur un côté */
-            transition: background-color 0.2s ease;
-        }
-        #toggle-left-sidebar {
-            left: 0; /* Initialement visible si la sidebar est ouverte */
-        }
-         #left-sidebar.collapsed + #viewport-container > #toggle-left-sidebar {
-            /* S'assurer qu'il est visible quand sidebar est fermée */
-        }
-        #toggle-right-sidebar {
-            right: 0; /* Initialement visible si la sidebar est ouverte */
-            border-radius: 5px 0 0 5px;
-        }
-
-        #toggle-left-sidebar:hover, #toggle-right-sidebar:hover {
-            background: #2980b9; /* Bleu plus foncé */
-        }
-        
-        /* Ajustement de la position des boutons de bascule lorsque les sidebars sont repliées */
-        #left-sidebar.collapsed ~ #viewport-container #toggle-left-sidebar {
-            transform: translateY(-50%) translateX(0%); /* Reste visible sur le bord */
-        }
-        #right-sidebar.collapsed ~ #viewport-container #toggle-right-sidebar {
-             transform: translateY(-50%) translateX(0%);
-        }
-
-
         .sidebar-content h3 {
-            margin-top: 0;
-            font-size: 1.2em; /* Taille augmentée */
-            color: #2c3e50; /* Bleu nuit */
-            border-bottom: 2px solid #3498db; /* Ligne bleue */
-            padding-bottom: 8px;
-            margin-bottom: 15px;
+            margin-top: 5px;
+            font-size: 1.0em; 
+            color: #424242; 
+            border-bottom: 1px solid #BDBDBD; 
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            font-weight: 600;
         }
         .sidebar-content label {
             display: block;
-            margin-top: 15px;
-            margin-bottom: 5px;
-            font-size: 0.95em;
-            font-weight: 600; /* Semi-gras */
-            color: #34495e; /* Bleu foncé */
+            margin-top: 10px;
+            margin-bottom: 3px;
+            font-size: 0.9em;
+            font-weight: normal; 
+            color: #555555; 
         }
         .sidebar-content input[type="text"],
         .sidebar-content textarea,
         .sidebar-content select {
-            width: calc(100% - 16px); /* Prend en compte le padding */
-            padding: 8px;
-            margin-bottom: 12px;
-            border: 1px solid #bdc3c7; /* Gris clair */
-            border-radius: 4px;
+            width: calc(100% - 16px); 
+            padding: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #BDBDBD; 
+            border-radius: 3px;
             box-sizing: border-box;
         }
         .sidebar-content button {
-            padding: 10px 15px;
-            background-color: #3498db; /* Bleu vif */
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 8px 12px;
+            background-color: #E0E0E0; 
+            color: #424242;
+            border: 1px solid #B0B0B0;
             margin-top: 8px;
             width: 100%;
-            transition: background-color 0.2s ease;
         }
         .sidebar-content button:hover {
-            background-color: #2980b9; /* Bleu plus foncé */
+            background-color: #D0D0D0; 
+            border-color: #9E9E9E;
         }
         #remove-current-seating {
-            background-color: #e74c3c; /* Rouge */
+            background-color: #EF9A9A; 
         }
         #remove-current-seating:hover {
-            background-color: #c0392b; /* Rouge plus foncé */
+            background-color: #E57373; 
+        }
+
+        /* --- COLOR PALETTE --- */
+        #color-palette-container {
+            margin-top: 15px;
+        }
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+            gap: 5px;
+        }
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #B0B0B0;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: transform 0.1s ease, border-color 0.1s ease;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+            border-color: #777;
+        }
+        .color-swatch.active-color-swatch {
+            border: 2px solid #3498db; /* Highlight for active color */
+            transform: scale(1.05);
         }
 
 
         /* --- VIEWPORT & CANVAS --- */
         #viewport-container {
             flex-grow: 1;
-            position: relative; /* Pour le positionnement absolu des enfants */
-            display: flex; /* Pour que le canvas prenne toute la place */
-            /* background-color: #708090; */ /* Supprimé pour que le ciel soit visible */
-            overflow: hidden; /* Empêche le canvas de déborder */
+            position: relative; 
+            display: flex; 
+            overflow: hidden; 
         }
-        #threejs-canvas { /* Le canvas lui-même sera ajouté par Three.js ici */
+        #threejs-canvas { 
             width: 100%;
             height: 100%;
             display: block;
         }
         #watermark {
             position: absolute;
-            bottom: 15px;
-            left: 15px;
-            color: rgba(0, 0, 0, 0.5); /* Couleur plus foncée pour contraste sur ciel clair */
-            font-size: 0.8em; /* Un peu plus petit pour accommoder plus de texte */
-            pointer-events: none; /* Ne pas interférer avec les clics sur le canvas */
-            text-shadow: 1px 1px 1px rgba(255,255,255,0.3);
-            line-height: 1.2;
+            bottom: 10px; 
+            left: 10px;  
+            color: rgba(0, 0, 0, 0.6); 
+            font-size: 0.75em; 
+            pointer-events: none; 
+            text-shadow: 0px 0px 1px rgba(255,255,255,0.5);
+            line-height: 1.3;
         }
 
         /* --- DPAD CONTROLS --- */
         #dpad-controls {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background-color: rgba(44, 62, 80, 0.85); /* Bleu nuit semi-transparent */
-            padding: 10px;
-            border-radius: 10px;
+            bottom: 15px;
+            right: 15px;
+            background-color: rgba(220, 220, 220, 0.75); 
+            padding: 8px;
+            border-radius: 6px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(3, 1fr); 
-            gap: 6px;
+            gap: 4px;
             z-index: 100;
             touch-action: none; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: 1px solid rgba(0,0,0,0.1);
         }
         #dpad-controls button {
-            background-color: #5d6d7e; /* Bleu-gris */
-            color: white;
-            border: 1px solid #7f8c8d; /* Gris */
-            padding: 0; 
-            font-size: 1.6em; 
-            cursor: pointer;
-            width: 50px; /* Taille augmentée */
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            background-color: #F0F0F0; 
+            color: #555555;
+            border: 1px solid #B0B0B0; 
+            font-size: 1.5em; 
+            width: 45px; 
+            height: 45px;
+            border-radius: 4px;
         }
         #dpad-controls button:hover {
-            background-color: #718093; /* Bleu-gris plus clair */
+            background-color: #E0E0E0;
+            border-color: #9E9E9E;
         }
         #dpad-controls button:active {
-            background-color: #8494a6; /* Encore plus clair à l'appui */
+            background-color: #D0D0D0; 
             transform: scale(0.95);
         }
 
-        #dpad-confirm    { background-color: #2ecc71; } /* Vert émeraude */
-        #dpad-confirm:hover { background-color: #27ae60; } /* Vert plus foncé */
+        #dpad-confirm    { background-color: #A5D6A7; } 
+        #dpad-confirm:hover { background-color: #81C784; } 
 
         /* Positionnement du DPad */
         #dpad-level-up   { grid-column: 1; grid-row: 1; }
@@ -341,32 +322,28 @@
         #element-counter {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
             font-size: 0.9em;
         }
         #element-counter th, #element-counter td {
-            border: 1px solid #bdc3c7; /* Gris clair */
-            padding: 8px 10px;
+            border: 1px solid #D0D0D0; 
+            padding: 6px 8px;
             text-align: left;
         }
         #element-counter th {
-            background-color: #dde4e6; /* Gris très clair */
-            color: #34495e; /* Bleu foncé */
+            background-color: #E8E8E8; 
+            color: #424242; 
             font-weight: 600;
         }
         #element-counter tr:nth-child(even) {
-            background-color: #f8f9f9; /* Alternance de couleurs pour lisibilité */
+            background-color: #F5F5F5; 
         }
-
-        /* --- CAMERA CONTROLS --- */
-        /* La section #camera-controls est supprimée du CSS car elle n'existe plus dans le HTML */
 
         /* --- MISC --- */
         .highlighted { 
-            outline: 3px solid #f1c40f; /* Jaune pour surlignage */
+            outline: 3px solid #f1c40f; 
             outline-offset: -1px;
         }
-        /* Style pour le canvas lorsqu'il est en mode ajout/sélection */
         .crosshair-cursor {
             cursor: crosshair;
         }
@@ -473,6 +450,9 @@
     <main>
         <aside id="left-sidebar">
             <div class="sidebar-content">
+                 <h3>Palette de Couleurs</h3>
+                 <div id="color-palette-container">
+                    </div>
                  <h3>Outils Supplémentaires</h3>
                  <p>(Autres outils à venir)</p>
                  <p>Navigation : Clic gauche + glisser pour orbiter, Clic droit + glisser pour translater, Molette pour zoomer.</p>
@@ -480,7 +460,6 @@
         </aside>
 
         <div id="viewport-container">
-            <button id="toggle-left-sidebar" title="Basculer Barre Latérale Gauche">&lt;</button>
             <div id="threejs-canvas"></div> 
             <div id="watermark">MurSimulateur3D by J.BROHEZ - Copyright © 2025 - v1.0.1</div>
             <div id="dpad-controls">
@@ -494,7 +473,6 @@
                 <button id="dpad-down" title="Reculer (S ou ↓)">▼</button>
                 <button id="dpad-rot-right" title="Rotation Droite (E)">↻</button>
             </div>
-            <button id="toggle-right-sidebar" title="Basculer Barre Latérale Droite">&gt;</button>
         </div>
 
         <aside id="right-sidebar">
@@ -537,8 +515,7 @@
             let objects = []; 
             let ghostElement = null; 
             let selectedObject = null;
-            // Zoom initial plus rapproché
-            const initialCameraPosition = new THREE.Vector3(2, 1.8, 2.5); 
+            const initialCameraPosition = new THREE.Vector3(0.8, 0.7, 1.5); 
             const initialCameraLookAt = new THREE.Vector3(0, 0.5, 0);
 
 
@@ -561,7 +538,17 @@
                 default: 0xBEBEBE  
             };
             let useWhiteElements = false;
-            let shadowsEnabled = true;
+            let shadowsEnabled = true; 
+
+            // --- COLOR PALETTE ---
+            const colorPalette = [
+                0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF, 
+                0x800080, 0xFFA500, 0xA52A2A, 0x808080, 0x000000, 0xFFFFFF,
+                0xCD5C5C, 0x87CEEB, 0x778899, 0xFFE4B5, 0xBDB76B, 0x98FB98 
+            ];
+            let currentActiveColor = null;
+            let activeSwatchElement = null;
+
 
             // --- DOM ELEMENTS ---
             const canvasContainer = document.getElementById('threejs-canvas'); 
@@ -575,6 +562,7 @@
             const videDepthContainer = document.getElementById('vide-depth-container');
             const videDepthInput = document.getElementById('vide-depth');
             const helpBar = document.getElementById('help-bar');
+            const colorPaletteContainer = document.getElementById('color-palette-container');
 
 
             const toolButtons = {
@@ -603,8 +591,6 @@
             const removeCurrentSeatingBtn = document.getElementById('remove-current-seating');
             const elementCounterTableBody = document.getElementById('element-counter').getElementsByTagName('tbody')[0];
             
-            const toggleLeftSidebarBtn = document.getElementById('toggle-left-sidebar');
-            const toggleRightSidebarBtn = document.getElementById('toggle-right-sidebar');
             const leftSidebar = document.getElementById('left-sidebar');
             const rightSidebar = document.getElementById('right-sidebar');
 
@@ -622,7 +608,7 @@
             // --- INITIALIZATION ---
             function initThreeJS() {
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color(0xADD8E6); // Light blue sky
+                scene.background = new THREE.Color(0xADD8E6); // Sky blue
 
                 camera = new THREE.PerspectiveCamera(50, viewportContainer.clientWidth / viewportContainer.clientHeight, 0.1, 1000);
                 camera.position.copy(initialCameraPosition);
@@ -630,32 +616,32 @@
 
                 renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); 
                 renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
-                renderer.shadowMap.enabled = shadowsEnabled;
+                renderer.shadowMap.enabled = shadowsEnabled; 
                 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 canvasContainer.appendChild(renderer.domElement); 
 
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.ROTATE,   
+                    MIDDLE: THREE.MOUSE.PAN,    
+                    RIGHT: THREE.MOUSE.ROTATE   
+                };
+                
                 controls.enableDamping = true;
                 controls.dampingFactor = 0.05;
                 controls.screenSpacePanning = true; 
-                controls.minDistance = 0.5;
+                controls.minDistance = 0.1; 
                 controls.maxDistance = 150; 
                 controls.maxPolarAngle = Math.PI / 2 - 0.01; 
                 controls.target.copy(initialCameraLookAt);
                 controls.update();
-
-                console.log("[INIT] controls object:", controls);
-                console.log("[INIT] typeof controls.dollyIn:", typeof controls.dollyIn);
-                console.log("[INIT] typeof controls.pan:", typeof controls.pan);
-                console.log("[INIT] typeof controls.rotateLeft:", typeof controls.rotateLeft);
-
 
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); 
                 scene.add(ambientLight);
 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); 
                 directionalLight.position.set(15, 20, 10); 
-                directionalLight.castShadow = shadowsEnabled;
+                directionalLight.castShadow = shadowsEnabled; 
                 directionalLight.shadow.mapSize.width = 2048;
                 directionalLight.shadow.mapSize.height = 2048;
                 directionalLight.shadow.camera.near = 0.5;
@@ -667,15 +653,16 @@
                 scene.add(directionalLight);
                 
                 const planeGeometry = new THREE.PlaneGeometry(100, 100); 
-                const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x90EE90, side: THREE.DoubleSide, roughness: 0.95, metalness: 0.1 }); // Light green ground
+                const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide, roughness: 0.9, metalness: 0.1 }); 
                 plane = new THREE.Mesh(planeGeometry, planeMaterial);
                 plane.rotation.x = -Math.PI / 2;
-                plane.receiveShadow = true;
+                plane.receiveShadow = true; 
                 plane.name = "GroundPlane";
                 scene.add(plane);
 
                 const gridHelper = new THREE.GridHelper(100, 100, 0xaaaaaa, 0xcccccc); 
                 gridHelper.name = "GridHelper"; 
+                gridHelper.visible = false; 
                 scene.add(gridHelper);
 
                 raycaster = new THREE.Raycaster();
@@ -687,10 +674,11 @@
                 document.addEventListener('keydown', onDocumentKeyDown, false);
 
                 setupUIEventListeners();
+                createColorPalette(); 
                 updateActiveToolButton();
                 updateSeatingSelector();
                 updateCursorStyle();
-                updateHelpBar(); // Initial help message
+                updateHelpBar(); 
 
                 animate();
             }
@@ -721,7 +709,6 @@
                     toolButtons[toolName].addEventListener('click', () => setCurrentTool(toolName));
                 });
 
-                // Add event.stopPropagation() to DPad button handlers
                 dpad.up.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('forward', event); });
                 dpad.down.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('backward', event); });
                 dpad.left.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('left', event); });
@@ -744,30 +731,6 @@
                     }
                 });
 
-                toggleLeftSidebarBtn.addEventListener('click', () => {
-                    leftSidebar.classList.toggle('collapsed');
-                    toggleLeftSidebarBtn.textContent = leftSidebar.classList.contains('collapsed') ? '>' : '<';
-                    if (leftSidebar.classList.contains('collapsed')) {
-                        toggleLeftSidebarBtn.style.left = '0px';
-                    } else {
-                        toggleLeftSidebarBtn.style.left = `${leftSidebar.offsetWidth}px`;
-                    }
-                    onWindowResize(); 
-                });
-                toggleRightSidebarBtn.addEventListener('click', () => {
-                    rightSidebar.classList.toggle('collapsed');
-                    toggleRightSidebarBtn.textContent = rightSidebar.classList.contains('collapsed') ? '<' : '>';
-                     if (rightSidebar.classList.contains('collapsed')) {
-                        toggleRightSidebarBtn.style.right = '0px';
-                    } else {
-                        toggleRightSidebarBtn.style.right = `${rightSidebar.offsetWidth}px`;
-                    }
-                    onWindowResize();
-                });
-                toggleLeftSidebarBtn.style.left = leftSidebar.classList.contains('collapsed') ? '0px' : `${leftSidebar.offsetWidth}px`;
-                toggleRightSidebarBtn.style.right = rightSidebar.classList.contains('collapsed') ? '0px' : `${rightSidebar.offsetWidth}px`;
-
-
                 newFileBtn.addEventListener('click', handleNewFile);
                 openFileBtn.addEventListener('click', handleOpenFile);
                 saveFileBtn.addEventListener('click', handleSaveFile);
@@ -777,48 +740,57 @@
                 styleColorBtn.addEventListener('click', () => setElementStyle(false));
                 toggleShadowsBtn.addEventListener('click', toggleAllShadows);
                 aboutAppBtn.addEventListener('click', () => alert('MurSimulateur3D\nVersion 1.0.1\nDéveloppé par J.BROHEZ avec Three.js.\nCopyright © 2025 J.BROHEZ\n\nDimensions des éléments: Longueur x Hauteur x Profondeur (Épaisseur du mur)'));
-                helpGuideBtn.addEventListener('click', () => alert('Aide :\n- Barre d\'outils : Sélectionner un outil puis interagir.\n- Ajout : Cliquer sur la grille pour fixer la position initiale du fantôme, ajuster avec le DPad, confirmer avec OK.\n- DPad : Flèches pour déplacer, ↺/↻ pour rotation, ⇞/⇟ pour monter/descendre. Maintenir Maj pour un pas plus grand.\n- Sélection : Cliquer sur un objet pour le sélectionner (il deviendra vert et plus grand).\n- Navigation : Clic gauche souris + glisser pour orbiter, clic droit + glisser pour translater, molette pour zoomer.\n- Raccourcis : S (Select), A (Add), M (Move), Maj+D (Duplicate), R (Rotate), Suppr (Delete), Entrée (Confirm DPad).\n Ctrl+S (Sauvegarder), Ctrl+O (Ouvrir).\n- Barres latérales : Cliquer sur < ou > pour les replier/déplier.'));
+                helpGuideBtn.addEventListener('click', () => alert('Aide :\n- Barre d\'outils : Sélectionner un outil puis interagir.\n- Ajout : Cliquer sur la grille pour fixer la position initiale du fantôme, ajuster avec le DPad, confirmer avec OK.\n- DPad : Flèches pour déplacer, ↺/↻ pour rotation, ⇞/⇟ pour monter/descendre. Maintenir Maj pour un pas plus grand.\n- Sélection : Cliquer sur un objet pour le sélectionner. Si une couleur est active (palette), elle sera appliquée.\n- Navigation : Clic gauche/droit + glisser = Orbite | Clic milieu + glisser = Pan | Molette = Zoom.\n- Raccourcis : S (Select), A (Add), M (Move), Maj+D (Duplicate), R (Rotate), Suppr (Delete), Entrée (Confirm DPad).\n Ctrl+S (Sauvegarder), Ctrl+O (Ouvrir).\n- Barres latérales : Cliquer sur < ou > pour les replier/déplier.'));
             }
             
             function updateCursorStyle() {
                 viewportContainer.classList.remove('crosshair-cursor', 'default-cursor', 'move-cursor');
-                switch (currentTool) {
-                    case 'add':
-                    case 'select':
-                        viewportContainer.classList.add('crosshair-cursor');
-                        break;
-                    case 'move':
-                         viewportContainer.classList.add('move-cursor');
-                        break;
-                    default:
-                        viewportContainer.classList.add('default-cursor');
-                        break;
+                if (currentTool === 'select' && currentActiveColor !== null) {
+                    viewportContainer.style.cursor = 'copy'; // Or a custom paint bucket cursor
+                } else {
+                    viewportContainer.style.cursor = ''; // Reset to default or tool-specific
+                    switch (currentTool) {
+                        case 'add':
+                        case 'select':
+                            viewportContainer.classList.add('crosshair-cursor');
+                            break;
+                        case 'move':
+                             viewportContainer.classList.add('move-cursor');
+                            break;
+                        default:
+                            viewportContainer.classList.add('default-cursor');
+                            break;
+                    }
                 }
             }
             
             function updateHelpBar() {
-                let helpText = "Navigation: Clic gauche + glisser = Orbite | Clic droit + glisser = Pan | Molette = Zoom.";
-                switch (currentTool) {
-                    case 'add':
-                        helpText = isGhostFixed ? 
-                                   "Mode AJOUT: Ajustez avec le DPad, puis confirmez avec 'OK'. (Échap pour annuler/repositionner)" :
-                                   "Mode AJOUT: Cliquez sur la grille pour placer l'élément fantôme.";
-                        break;
-                    case 'select':
-                        helpText = "Mode SÉLECTION: Cliquez sur un élément pour le sélectionner.";
-                        break;
-                    case 'move':
-                        helpText = selectedObject ? "Mode DÉPLACER: Utilisez le DPad pour déplacer l'élément sélectionné. Confirmez avec 'OK'." : "Mode DÉPLACER: Cliquez sur un élément pour le sélectionner et le déplacer.";
-                        break;
-                    case 'rotate':
-                        helpText = selectedObject ? "Mode PIVOTER: Utilisez les boutons de rotation du DPad (↺, ↻). Confirmez avec 'OK'." : "Mode PIVOTER: Cliquez sur un élément pour le sélectionner et le faire pivoter.";
-                        break;
-                    case 'duplicate':
-                        helpText = "Mode DUPLIQUER: Cliquez sur un élément pour le dupliquer. Le duplicata sera sélectionné en mode Déplacer.";
-                        break;
-                    case 'delete':
-                        helpText = "Mode SUPPRIMER: Cliquez sur un élément pour le supprimer.";
-                        break;
+                let helpText = "Navigation: Clic Gauche/Droit + Glisser = Orbite | Clic Milieu + Glisser = Pan | Molette = Zoom.";
+                 if (currentActiveColor !== null && currentTool === 'select') {
+                    helpText = "Mode PEINTURE: Cliquez sur un élément pour appliquer la couleur sélectionnée. Désactivez la couleur (palette/Échap) pour sélectionner.";
+                } else {
+                    switch (currentTool) {
+                        case 'add':
+                            helpText = isGhostFixed ? 
+                                       "Mode AJOUT: Ajustez avec le DPad, puis confirmez avec 'OK'. (Échap pour annuler/repositionner). Clic Droit/Molette pour naviguer." :
+                                       "Mode AJOUT: Cliquez sur la grille pour placer l'élément fantôme.";
+                            break;
+                        case 'select':
+                            helpText = "Mode SÉLECTION: Cliquez sur un élément pour le sélectionner. Choisissez une couleur dans la palette pour peindre.";
+                            break;
+                        case 'move':
+                            helpText = selectedObject ? "Mode DÉPLACER: Utilisez le DPad pour déplacer. Confirmez avec 'OK'." : "Mode DÉPLACER: Cliquez sur un élément pour le sélectionner.";
+                            break;
+                        case 'rotate':
+                            helpText = selectedObject ? "Mode PIVOTER: Utilisez le DPad (↺, ↻). Confirmez avec 'OK'." : "Mode PIVOTER: Cliquez sur un élément pour le sélectionner.";
+                            break;
+                        case 'duplicate':
+                            helpText = "Mode DUPLIQUER: Cliquez sur un élément pour le dupliquer.";
+                            break;
+                        case 'delete':
+                            helpText = "Mode SUPPRIMER: Cliquez sur un élément pour le supprimer.";
+                            break;
+                    }
                 }
                 helpBar.textContent = helpText;
             }
@@ -828,29 +800,37 @@
             function setCurrentTool(tool) {
                 currentTool = tool;
                 updateActiveToolButton();
-                updateCursorStyle();
+                
+                if (tool !== 'select' && currentActiveColor !== null) { // Deactivate color if switching away from select tool
+                    if (activeSwatchElement) activeSwatchElement.classList.remove('active-color-swatch');
+                    currentActiveColor = null;
+                    activeSwatchElement = null;
+                }
+                
+                updateCursorStyle(); // Update cursor after potential color deactivation
                 updateHelpBar(); 
 
                 if (tool === 'add' || tool === 'select') {
-                    deselectObject(); 
+                    deselectObject(); // This also re-enables controls.enableRotate if not in add mode
                 }
 
                 if (tool === 'add') {
                     if (!ghostElement) createGhostElement();
                     if (ghostElement) ghostElement.visible = true;
                     controls.enabled = false; 
+                    controls.enableRotate = false; 
                     isGhostFixed = false; 
                 } else {
                     removeGhostElement(); 
                     if ((tool === 'move' || tool === 'rotate') && selectedObject) {
-                        controls.enabled = false;
+                        controls.enabled = false; 
                     } else {
-                        controls.enabled = true;
+                        controls.enabled = true;  
                     }
+                    controls.enableRotate = true; 
                     isGhostFixed = false;
                 }
                 if (controls) controls.update(); 
-                // console.log(`[DEBUG] Tool changed to: ${tool}. OrbitControls enabled: ${controls.enabled}. Selected object: ${selectedObject ? selectedObject.name : 'null'}`);
             }
 
 
@@ -860,6 +840,41 @@
                     toolButtons[currentTool].classList.add('tool-active');
                 }
             }
+
+            // --- COLOR PALETTE ---
+            function createColorPalette() {
+                const paletteDiv = document.createElement('div');
+                paletteDiv.className = 'color-palette';
+                colorPalette.forEach(colorHex => {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'color-swatch';
+                    swatch.style.backgroundColor = '#' + colorHex.toString(16).padStart(6, '0');
+                    swatch.dataset.color = colorHex; // Store as number
+                    swatch.addEventListener('click', (event) => {
+                        event.stopPropagation(); // Prevent click from bubbling to viewport
+                        if (activeSwatchElement === swatch) { // Clicked the active swatch again
+                            currentActiveColor = null;
+                            activeSwatchElement.classList.remove('active-color-swatch');
+                            activeSwatchElement = null;
+                        } else {
+                            if (activeSwatchElement) {
+                                activeSwatchElement.classList.remove('active-color-swatch');
+                            }
+                            currentActiveColor = parseInt(swatch.dataset.color); // Store as number
+                            activeSwatchElement = swatch;
+                            activeSwatchElement.classList.add('active-color-swatch');
+                            if (currentTool !== 'select') { // Switch to select tool if a color is chosen
+                                setCurrentTool('select');
+                            }
+                        }
+                        updateCursorStyle();
+                        updateHelpBar();
+                    });
+                    paletteDiv.appendChild(swatch);
+                });
+                colorPaletteContainer.appendChild(paletteDiv);
+            }
+
 
             // --- ELEMENT CREATION & MANAGEMENT ---
             function getElementProperties() {
@@ -942,7 +957,6 @@
                 element.rotation.y = rotationY;
                 element.name = propsFromGhost.name; 
 
-                // CRITICAL FIX: Ensure the 'isGhost' property is correctly set for real objects
                 element.userData = {
                     type: propsFromGhost.type,
                     baseType: propsFromGhost.baseType,
@@ -950,20 +964,17 @@
                     width: propsFromGhost.width,
                     height: propsFromGhost.height,
                     depth: propsFromGhost.depth,
-                    isGhost: false, // Explicitly set to false for real objects
+                    isGhost: false, 
                     id: THREE.MathUtils.generateUUID(),
                     originalColor: baseColorHex, 
                     seatingIndex: currentSeatingIndex 
                 };
                 
-                // console.log("[ADD ELEMENT] Created real object. Name:", element.name, "userData.isGhost:", element.userData.isGhost);
-
-                // Add edges
                 const edges = new THREE.EdgesGeometry(element.geometry);
-                const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 }); // Linewidth defaults to 1
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 }); 
                 const lineSegments = new THREE.LineSegments(edges, lineMaterial);
-                lineSegments.name = "elementEdges"; // Give edges a name for easier identification if needed
-                element.add(lineSegments); // Add edges as a child of the element
+                lineSegments.name = "elementEdges"; 
+                element.add(lineSegments); 
 
 
                 objects.push(element);
@@ -976,6 +987,8 @@
                 if (currentTool === 'add' && ghostElement && ghostElement.visible) {
                     addElementAtPosition(ghostElement.position.clone(), ghostElement.rotation.y, ghostElement.userData);
                     isGhostFixed = false; 
+                    controls.enabled = false; 
+                    controls.enableRotate = false; 
                 } else if ((currentTool === 'move' || currentTool === 'rotate') && selectedObject) {
                     deselectObject(); 
                     setCurrentTool('select'); 
@@ -1001,7 +1014,6 @@
                 const target = (currentTool === 'add' && ghostElement && isGhostFixed) ? ghostElement : 
                                ((currentTool === 'move' || currentTool === 'rotate') && selectedObject) ? selectedObject : null;
                 if (!target) {
-                    // console.log("[DPAD DEBUG] No target for DPad operation. Tool:", currentTool, "Ghost fixed:", isGhostFixed, "Selected:", selectedObject ? selectedObject.name : 'null');
                     return;
                 }
  
@@ -1064,7 +1076,6 @@
                      console.log("[DPAD ROTATE DEBUG] No target for DPad rotation. Tool:", currentTool, "Ghost fixed:", isGhostFixed, "Selected:", selectedObject ? selectedObject.name : 'null');
                     return;
                 }
-                // console.log("[DPAD ROTATE DEBUG] Rotating target:", target.name);
 
                 const currentEvent = eventParam || window.event;
                 const useShift = currentEvent ? currentEvent.shiftKey : false;
@@ -1074,12 +1085,7 @@
 
             // --- SELECTION ---
             function selectObject(object) {
-                // console.log("[SELECT DEBUG] selectObject called. Object Name:", object ? object.name : 'N/A', "UUID:", object ? object.uuid : 'N/A');
-                // console.log("[SELECT DEBUG] Current selectedObject before new selection:", selectedObject ? selectedObject.name : 'null');
-                // console.log("[SELECT DEBUG] Incoming object.userData.isGhost:", object && object.userData ? object.userData.isGhost : 'userData missing or object null');
-
                 if (selectedObject === object) {
-                    // console.log("[SELECT DEBUG] Object is already selected.");
                     return; 
                 }
                 deselectObject(); 
@@ -1090,12 +1096,7 @@
                 const cond2 = !!(selectedObject && selectedObject.userData);
                 const cond3 = selectedObject && selectedObject.userData ? (selectedObject.userData.isGhost === undefined || selectedObject.userData.isGhost === false) : false;
                 
-                // console.log(`[SELECT DEBUG] Conditions after assignment: exists=${cond1}, hasUserData=${cond2}, isNotGhost=${cond3}`);
-                // console.log(`[SELECT DEBUG] selectedObject.userData.isGhost value after assignment: ${selectedObject && selectedObject.userData ? selectedObject.userData.isGhost : 'userData missing or selectedObject null'}`);
-
-
                 if (cond1 && cond2 && cond3) { 
-                    // console.log("[SELECT DEBUG] Selection condition PASSED. Applying effect to:", selectedObject.name);
                     selectedObject.userData.originalMaterialParams = {
                         color: selectedObject.userData.originalColor || selectedObject.material.color.getHex(),
                         emissive: selectedObject.material.emissive ? selectedObject.material.emissive.getHex() : 0x000000
@@ -1109,13 +1110,10 @@
                     
                     if (currentTool === 'move' || currentTool === 'rotate') {
                         controls.enabled = false; 
-                        // console.log(`[SELECT DEBUG] Tool is ${currentTool}, OrbitControls disabled for DPad.`);
                     } else { 
                         controls.enabled = true; 
-                        // console.log(`[SELECT DEBUG] Tool is ${currentTool}, OrbitControls enabled.`);
                     }
                 } else { 
-                    // console.log("[SELECT DEBUG] Selection condition FAILED. Resetting selectedObject to null.");
                     selectedObject = null; 
                     if (currentTool !== 'add') { 
                         controls.enabled = true;
@@ -1127,7 +1125,6 @@
 
             function deselectObject() {
                 if (selectedObject && selectedObject.userData && selectedObject.userData.isGhost !== true) { 
-                    // console.log("[DEBUG] Deselecting object:", selectedObject.name || selectedObject.uuid);
                     if (selectedObject.userData.originalMaterialParams) {
                         selectedObject.material.color.setHex(selectedObject.userData.originalMaterialParams.color);
                         selectedObject.material.emissive.setHex(selectedObject.userData.originalMaterialParams.emissive);
@@ -1143,6 +1140,7 @@
 
                 if (currentTool !== 'add') { 
                     controls.enabled = true; 
+                    controls.enableRotate = true; 
                     if(controls) controls.update();
                 }
                  if (currentTool !== 'add') { 
@@ -1158,9 +1156,6 @@
                 camera.aspect = newWidth / newHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(newWidth, newHeight);
-
-                toggleLeftSidebarBtn.style.left = leftSidebar.classList.contains('collapsed') ? '0px' : `${leftSidebar.offsetWidth}px`;
-                toggleRightSidebarBtn.style.right = rightSidebar.classList.contains('collapsed') ? '0px' : `${rightSidebar.offsetWidth}px`;
             }
 
             function onViewportPointerMove(event) {
@@ -1184,52 +1179,57 @@
             function onViewportPointerDown(event) {
                 const dpadContainer = document.getElementById('dpad-controls');
                 if (dpadContainer && dpadContainer.contains(event.target)) {
-                    // console.log("[POINTER DOWN DEBUG] Click on DPad button or its child ignored by viewport listener.");
-                    return; // Ignore clicks originating from the DPad itself
+                    return; 
                 }
 
-                if (event.button !== 0) return; 
-                
-                const rect = viewportContainer.getBoundingClientRect();
-                mousePointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mousePointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-                                
-                raycaster.setFromCamera(mousePointer, camera);
+                // Process left clicks for object interaction/placement
+                if (event.button === 0) { 
+                    const rect = viewportContainer.getBoundingClientRect();
+                    mousePointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mousePointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                                    
+                    raycaster.setFromCamera(mousePointer, camera);
 
-                if (currentTool === 'add') {
-                    if (ghostElement && !isGhostFixed) {
-                        isGhostFixed = true; 
-                        updateHelpBar();
-                    }
-                } else if (currentTool === 'select' || currentTool === 'move' || currentTool === 'duplicate' || currentTool === 'rotate' || currentTool === 'delete') {
-                    const intersectsObjects = raycaster.intersectObjects(objects, false); 
-                    // console.log(`[POINTER DOWN DEBUG] Tool: ${currentTool}. Intersections: ${intersectsObjects.length}`);
-
-                    if (intersectsObjects.length > 0) {
-                        const clickedObject = intersectsObjects[0].object;
-                        // console.log("[POINTER DOWN DEBUG] Clicked Object - Name:", clickedObject.name, "UUID:", clickedObject.uuid);
-                        // console.log("[POINTER DOWN DEBUG] Clicked object userData:", JSON.stringify(clickedObject.userData)); 
-                        // console.log("[POINTER DOWN DEBUG] Clicked object userData.isGhost directly:", clickedObject.userData.isGhost);
-
-
-                        if (clickedObject === plane || clickedObject.name === "GridHelper") { 
-                            // console.log("[POINTER DOWN DEBUG] Clicked on plane or grid, deselecting.");
-                            deselectObject(); 
-                            return;
+                    if (currentTool === 'add') {
+                        if (ghostElement && !isGhostFixed) { // First click in add mode
+                            isGhostFixed = true; 
+                            controls.enabled = true;     // Enable OrbitControls for right-click/wheel
+                            controls.enableRotate = true;  // Allow rotation (right-click will orbit)
+                            updateHelpBar();
                         }
-
-                        if (currentTool === 'select') {
-                            selectObject(clickedObject);
-                        } else if (currentTool === 'move' || currentTool === 'rotate') {
-                            selectObject(clickedObject); 
-                        } else if (currentTool === 'duplicate') {
-                            duplicateObject(clickedObject);
-                        } else if (currentTool === 'delete') {
-                            deleteObject(clickedObject);
-                        }
-                    } else {
-                        // console.log("[POINTER DOWN DEBUG] Clicked on empty space (no intersect), deselecting.");
-                        deselectObject(); 
+                    } else if (currentTool === 'select') {
+                        const intersectsObjects = raycaster.intersectObjects(objects, false);
+                        if (intersectsObjects.length > 0) {
+                            const clickedObject = intersectsObjects[0].object;
+                            if (clickedObject !== plane && clickedObject.name !== "GridHelper") {
+                                if (currentActiveColor !== null) { // Paint mode
+                                    clickedObject.userData.originalColor = currentActiveColor;
+                                    if (!useWhiteElements) {
+                                        clickedObject.material.color.setHex(currentActiveColor);
+                                    }
+                                    clickedObject.material.needsUpdate = true;
+                                    // Don't select the object in the traditional sense, just color it
+                                    // If you want to also select it, call selectObject(clickedObject) here
+                                    // and potentially remove the deselectObject() from setCurrentTool when a color is active.
+                                } else { // Normal selection mode
+                                    selectObject(clickedObject);
+                                }
+                            } else { deselectObject(); }
+                        } else { deselectObject(); }
+                    } else if (currentTool === 'move' || currentTool === 'duplicate' || currentTool === 'rotate' || currentTool === 'delete') {
+                        const intersectsObjects = raycaster.intersectObjects(objects, false); 
+                        if (intersectsObjects.length > 0) {
+                            const clickedObject = intersectsObjects[0].object;
+                            if (clickedObject !== plane && clickedObject.name !== "GridHelper") {
+                                if (currentTool === 'move' || currentTool === 'rotate') {
+                                    selectObject(clickedObject); 
+                                } else if (currentTool === 'duplicate') {
+                                    duplicateObject(clickedObject);
+                                } else if (currentTool === 'delete') {
+                                    deleteObject(clickedObject);
+                                }
+                            } else { deselectObject(); }
+                        } else { deselectObject(); }
                     }
                 }
             }
@@ -1266,10 +1266,19 @@
                         }
                         break;
                     case 'escape':
-                        if (currentTool === 'add' && ghostElement) {
+                        if (currentActiveColor !== null) {
+                            if (activeSwatchElement) activeSwatchElement.classList.remove('active-color-swatch');
+                            currentActiveColor = null;
+                            activeSwatchElement = null;
+                            updateCursorStyle();
+                            updateHelpBar();
+                            event.preventDefault(); // Consume the event
+                        } else if (currentTool === 'add' && ghostElement) {
                             if (isGhostFixed) {
                                 isGhostFixed = false; 
                                 if (ghostElement) ghostElement.visible = true; 
+                                controls.enabled = false; 
+                                controls.enableRotate = false; 
                                 updateHelpBar();
                             } else {
                                 removeGhostElement(); 
@@ -1303,10 +1312,8 @@
             function duplicateObject(objectToDuplicate) {
                 const sourceObject = objectToDuplicate || selectedObject; 
                 if (!sourceObject) {
-                    console.log("[DEBUG] Duplicate: No source object.");
                      return;
                 }
-                console.log("[DEBUG] Duplicating object:", sourceObject.name);
 
                 const props = sourceObject.userData;
                 const offset = new THREE.Vector3(props.width * 1.05, 0, 0); 
@@ -1326,12 +1333,9 @@
             function deleteObject(objectToDelete) {
                 const target = objectToDelete || selectedObject; 
                 if (!target || target === plane || target === ghostElement) {
-                    console.log("[DEBUG] Delete: No valid target or target is plane/ghost.");
                     return;
                 }
-                console.log("[DEBUG] Deleting object:", target.name || target.uuid);
 
-                // Remove edges first if they are children
                 target.traverse((child) => {
                     if (child.isLineSegments && child.name === "elementEdges") {
                         if (child.geometry) child.geometry.dispose();
@@ -1342,7 +1346,6 @@
                                 child.material.dispose();
                             }
                         }
-                        // child is automatically removed from parent when parent is removed from scene
                     }
                 });
 
