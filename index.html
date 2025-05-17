@@ -3,138 +3,1885 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulateur de Construction 3D</title>
-    <link rel="stylesheet" href="style.css">
+    <title>MurSimulateur3D</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* --- GENERAL STYLES --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Empêche les barres de défilement sur le corps */
+            font-size: 14px;
+            background-color: #f0f0f0; /* Couleur de fond générale */
+        }
+
+        button, select, input {
+            font-size: inherit;
+            border-radius: 4px; /* Coins arrondis pour les éléments interactifs */
+        }
+
+        /* --- HEADER & MENUS --- */
+        header {
+            background-color: #2c3e50; /* Bleu nuit */
+            color: white;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000; /* Au-dessus de tout */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #main-menu {
+            display: flex;
+            border-bottom: 1px solid #34495e; /* Bleu plus foncé pour séparateur */
+        }
+
+        .menu-item {
+            position: relative;
+            padding: 12px 18px; /* Plus d'espace */
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .menu-item:hover {
+            background-color: #34495e; /* Bleu plus foncé au survol */
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #ecf0f1; /* Gris clair */
+            min-width: 220px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            left: 0;
+            top: 100%;
+            border-radius: 0 0 4px 4px;
+            overflow: hidden; /* Pour que les coins arrondis s'appliquent aux enfants */
+        }
+        .dropdown-content a {
+            color: #2c3e50; /* Texte bleu nuit */
+            padding: 12px 18px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.2s ease;
+        }
+        .dropdown-content a:hover {
+            background-color: #bdc3c7; /* Gris moyen au survol */
+        }
+        .menu-item:hover .dropdown-content {
+            display: block;
+        }
+
+        /* --- TOOLBAR --- */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            flex-wrap: wrap;
+            background-color: #34495e; /* Bleu plus foncé */
+            /* border-bottom: 1px solid #2c3e50; */ /* Supprimé pour coller la barre d'aide */
+        }
+        #toolbar button, #toolbar select {
+            margin-right: 8px;
+            margin-bottom: 5px; /* Pour le wrapping */
+            padding: 8px 12px;
+            border: 1px solid #7f8c8d; /* Gris */
+            background-color: #5d6d7e; /* Bleu-gris */
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        #toolbar button:hover, #toolbar select:hover {
+            background-color: #718093; /* Bleu-gris plus clair */
+        }
+        #toolbar input[type="number"], #toolbar input[type="text"] {
+            margin-right: 8px;
+            margin-bottom: 5px;
+            padding: 8px;
+            border: 1px solid #bdc3c7; /* Gris clair */
+            border-radius: 4px;
+            background-color: #fff;
+            color: #333;
+        }
+        #toolbar input[type="number"] {
+            width: 75px;
+        }
+        #custom-dims-container input, #vide-depth-container input {
+            margin-left: 5px;
+        }
+        #vide-depth-container label { margin-left: 10px;}
+
+        .tool-active {
+            background-color: #3498db !important; /* Bleu vif */
+            color: white !important;
+            border-color: #2980b9 !important; /* Bleu plus foncé */
+        }
+
+        /* --- HELP BAR --- */
+        #help-bar {
+            background-color: #4a6572; /* Bleu-gris plus foncé que la toolbar */
+            color: #e0e0e0; /* Gris clair pour le texte */
+            padding: 8px 12px;
+            font-size: 0.85em;
+            text-align: center;
+            border-bottom: 1px solid #2c3e50;
+        }
+
+
+        /* --- MAIN LAYOUT & SIDEBARS --- */
+        main {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden; /* Important pour que les sidebars n'affectent pas le scroll global */
+        }
+
+        #left-sidebar, #right-sidebar {
+            width: 280px; /* Largeur augmentée */
+            background-color: #ecf0f1; /* Gris clair */
+            padding: 20px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease, padding 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+            overflow-y: auto; 
+            z-index: 900; 
+        }
+        #left-sidebar { border-right: 1px solid #bdc3c7; }
+        #right-sidebar { border-left: 1px solid #bdc3c7; }
+
+        #left-sidebar.collapsed {
+            width: 0;
+            padding-left: 0;
+            padding-right: 0;
+            border-right: none;
+            transform: translateX(-100%); /* Animation de repli */
+            opacity: 0;
+        }
+        #right-sidebar.collapsed {
+            width: 0;
+            padding-left: 0;
+            padding-right: 0;
+            border-left: none;
+            transform: translateX(100%); /* Animation de repli */
+            opacity: 0;
+        }
+        
+        #toggle-left-sidebar, #toggle-right-sidebar {
+            position: absolute; /* Pour se superposer légèrement au viewport */
+            top: 50%;
+            transform: translateY(-50%);
+            background: #3498db; /* Bleu vif */
+            color: white;
+            border: none;
+            padding: 15px 5px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 950; /* Au-dessus des sidebars mais sous le header */
+            border-radius: 0 5px 5px 0; /* Arrondi sur un côté */
+            transition: background-color 0.2s ease;
+        }
+        #toggle-left-sidebar {
+            left: 0; /* Initialement visible si la sidebar est ouverte */
+        }
+         #left-sidebar.collapsed + #viewport-container > #toggle-left-sidebar {
+            /* S'assurer qu'il est visible quand sidebar est fermée */
+        }
+        #toggle-right-sidebar {
+            right: 0; /* Initialement visible si la sidebar est ouverte */
+            border-radius: 5px 0 0 5px;
+        }
+
+        #toggle-left-sidebar:hover, #toggle-right-sidebar:hover {
+            background: #2980b9; /* Bleu plus foncé */
+        }
+        
+        /* Ajustement de la position des boutons de bascule lorsque les sidebars sont repliées */
+        #left-sidebar.collapsed ~ #viewport-container #toggle-left-sidebar {
+            transform: translateY(-50%) translateX(0%); /* Reste visible sur le bord */
+        }
+        #right-sidebar.collapsed ~ #viewport-container #toggle-right-sidebar {
+             transform: translateY(-50%) translateX(0%);
+        }
+
+
+        .sidebar-content h3 {
+            margin-top: 0;
+            font-size: 1.2em; /* Taille augmentée */
+            color: #2c3e50; /* Bleu nuit */
+            border-bottom: 2px solid #3498db; /* Ligne bleue */
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        .sidebar-content label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+            font-weight: 600; /* Semi-gras */
+            color: #34495e; /* Bleu foncé */
+        }
+        .sidebar-content input[type="text"],
+        .sidebar-content textarea,
+        .sidebar-content select {
+            width: calc(100% - 16px); /* Prend en compte le padding */
+            padding: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #bdc3c7; /* Gris clair */
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .sidebar-content button {
+            padding: 10px 15px;
+            background-color: #3498db; /* Bleu vif */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 8px;
+            width: 100%;
+            transition: background-color 0.2s ease;
+        }
+        .sidebar-content button:hover {
+            background-color: #2980b9; /* Bleu plus foncé */
+        }
+        #remove-current-seating {
+            background-color: #e74c3c; /* Rouge */
+        }
+        #remove-current-seating:hover {
+            background-color: #c0392b; /* Rouge plus foncé */
+        }
+
+
+        /* --- VIEWPORT & CANVAS --- */
+        #viewport-container {
+            flex-grow: 1;
+            position: relative; /* Pour le positionnement absolu des enfants */
+            display: flex; /* Pour que le canvas prenne toute la place */
+            /* background-color: #708090; */ /* Supprimé pour que le ciel soit visible */
+            overflow: hidden; /* Empêche le canvas de déborder */
+        }
+        #threejs-canvas { /* Le canvas lui-même sera ajouté par Three.js ici */
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #watermark {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: rgba(0, 0, 0, 0.5); /* Couleur plus foncée pour contraste sur ciel clair */
+            font-size: 0.8em; /* Un peu plus petit pour accommoder plus de texte */
+            pointer-events: none; /* Ne pas interférer avec les clics sur le canvas */
+            text-shadow: 1px 1px 1px rgba(255,255,255,0.3);
+            line-height: 1.2;
+        }
+
+        /* --- DPAD CONTROLS --- */
+        #dpad-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(44, 62, 80, 0.85); /* Bleu nuit semi-transparent */
+            padding: 10px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr); 
+            gap: 6px;
+            z-index: 100;
+            touch-action: none; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #dpad-controls button {
+            background-color: #5d6d7e; /* Bleu-gris */
+            color: white;
+            border: 1px solid #7f8c8d; /* Gris */
+            padding: 0; 
+            font-size: 1.6em; 
+            cursor: pointer;
+            width: 50px; /* Taille augmentée */
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        #dpad-controls button:hover {
+            background-color: #718093; /* Bleu-gris plus clair */
+        }
+        #dpad-controls button:active {
+            background-color: #8494a6; /* Encore plus clair à l'appui */
+            transform: scale(0.95);
+        }
+
+        #dpad-confirm    { background-color: #2ecc71; } /* Vert émeraude */
+        #dpad-confirm:hover { background-color: #27ae60; } /* Vert plus foncé */
+
+        /* Positionnement du DPad */
+        #dpad-level-up   { grid-column: 1; grid-row: 1; }
+        #dpad-up         { grid-column: 2; grid-row: 1; }
+        #dpad-rot-left   { grid-column: 3; grid-row: 1; }
+
+        #dpad-left       { grid-column: 1; grid-row: 2; }
+        #dpad-confirm    { grid-column: 2; grid-row: 2; } 
+        #dpad-right      { grid-column: 3; grid-row: 2; }
+
+        #dpad-level-down { grid-column: 1; grid-row: 3; }
+        #dpad-down       { grid-column: 2; grid-row: 3; }
+        #dpad-rot-right  { grid-column: 3; grid-row: 3; }
+
+
+        /* --- ELEMENT COUNTER TABLE --- */
+        #element-counter {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        #element-counter th, #element-counter td {
+            border: 1px solid #bdc3c7; /* Gris clair */
+            padding: 8px 10px;
+            text-align: left;
+        }
+        #element-counter th {
+            background-color: #dde4e6; /* Gris très clair */
+            color: #34495e; /* Bleu foncé */
+            font-weight: 600;
+        }
+        #element-counter tr:nth-child(even) {
+            background-color: #f8f9f9; /* Alternance de couleurs pour lisibilité */
+        }
+
+        /* --- CAMERA CONTROLS --- */
+        /* La section #camera-controls est supprimée du CSS car elle n'existe plus dans le HTML */
+
+        /* --- MISC --- */
+        .highlighted { 
+            outline: 3px solid #f1c40f; /* Jaune pour surlignage */
+            outline-offset: -1px;
+        }
+        /* Style pour le canvas lorsqu'il est en mode ajout/sélection */
+        .crosshair-cursor {
+            cursor: crosshair;
+        }
+        .default-cursor {
+            cursor: default;
+        }
+        .move-cursor {
+            cursor: move;
+        }
+    </style>
 </head>
 <body>
-    <div id="custom-alert-box" class="custom-alert"></div>
-
-    <div class="top-bar">
-        <nav class="menu-bar">
-            <ul>
-                <li>Fichier
-                    <ul>
-                        <li id="file-new">Nouveau</li>
-                        <li id="file-open">Ouvrir (Non implémenté)</li>
-                        <li id="file-save">Enregistrer (Non implémenté)</li>
-                        <li id="file-export-pdf">Exporter en PDF</li>
-                    </ul>
-                </li>
-                <li>Édition
-                    <ul>
-                        <li id="edit-undo">Annuler (Non implémenté)</li>
-                        <li id="edit-redo">Rétablir (Non implémenté)</li>
-                    </ul>
-                </li>
-                <li>Style
-                    <ul>
-                        <li id="style-elements-white">Éléments en blanc</li>
-                        <li id="style-elements-color">Éléments en couleur</li>
-                        <li id="style-toggle-shadows">Ombres (Non implémenté)</li>
-                    </ul>
-                </li>
-                <li>Aide
-                    <ul>
-                        <li id="help-about">À propos</li>
-                        <li id="help-docs">Aide (Non implémenté)</li>
-                    </ul>
-                </li>
-            </ul>
+    <header>
+        <nav id="main-menu">
+            <div class="menu-item">
+                Fichier
+                <div class="dropdown-content">
+                    <a href="#" id="new-file">Nouveau</a>
+                    <a href="#" id="open-file">Ouvrir</a>
+                    <a href="#" id="save-file">Enregistrer</a>
+                    <a href="#" id="export-pdf">Exporter en PDF</a>
+                </div>
+            </div>
+            <div class="menu-item">
+                Edition
+                <div class="dropdown-content">
+                    <a href="#" id="edit-selection">Modifier Sélection</a>
+                </div>
+            </div>
+            <div class="menu-item">
+                Style
+                <div class="dropdown-content">
+                    <a href="#" id="style-white">Éléments en Blanc</a>
+                    <a href="#" id="style-color">Éléments en Couleur</a>
+                    <a href="#" id="toggle-shadows">Activer/Désactiver Ombres</a>
+                </div>
+            </div>
+            <div class="menu-item">
+                Aide
+                <div class="dropdown-content">
+                    <a href="#" id="about-app">À Propos</a>
+                    <a href="#" id="help-guide">Aide</a>
+                </div>
+            </div>
         </nav>
-
-        <div class="toolbar">
-            <button id="btn-select" title="Sélectionner (S)">S</button>
-            <button id="btn-add" title="Ajouter (A)">A</button>
-            <button id="btn-move" title="Déplacer (M)">M</button>
-            <button id="btn-rotate" title="Pivoter (R)">R</button>
-            <button id="btn-duplicate" title="Dupliquer (D)">D</button>
-            <button id="btn-delete" title="Supprimer (Suppr)">Suppr</button>
-            <select id="element-type-select"></select>
+        <div id="toolbar">
+            <button id="select-tool" title="Sélectionner (S)">Sél.</button>
+            <button id="add-tool" title="Ajouter (A)">Ajouter</button>
+            <button id="move-tool" title="Déplacer (M)">Dépl.</button>
+            <button id="duplicate-tool" title="Dupliquer (Maj+D)">Dupl.</button>
+            <button id="rotate-tool" title="Pivoter (R)">Piv.</button>
+            <button id="delete-tool" title="Supprimer (Suppr)">Suppr.</button>
+            <select id="element-type-selector">
+                <optgroup label="Briques">
+                    <option value="brique_m50" data-dims="0.19,0.05,0.09">Brique M50 (19x5x9)</option>
+                    <option value="brique_m57" data-dims="0.19,0.057,0.09">Brique M57 (19x5.7x9)</option>
+                    <option value="brique_m65" data-dims="0.19,0.065,0.09">Brique M65 (19x6.5x9)</option>
+                    <option value="brique_m90" data-dims="0.19,0.09,0.09">Brique M90 (19x9x9)</option>
+                    <option value="brique_wf" data-dims="0.21,0.05,0.10">Brique WF (21x5x10)</option>
+                    <option value="brique_wfd" data-dims="0.21,0.065,0.10">Brique WFD (21x6.5x10)</option>
+                </optgroup>
+                <optgroup label="Blocs">
+                    <option value="bloc_b9" data-dims="0.39,0.19,0.09">Bloc B9 (39x19x9)</option>
+                    <option value="bloc_b14" data-dims="0.39,0.19,0.14">Bloc B14 (39x19x14)</option>
+                    <option value="bloc_b19" data-dims="0.39,0.19,0.19">Bloc B19 (39x19x19)</option>
+                    <option value="bloc_b29" data-dims="0.39,0.19,0.29">Bloc B29 (39x19x29)</option>
+                </optgroup>
+                <optgroup label="Linteaux">
+                    <option value="linteau_l120_14" data-dims="1.20,0.19,0.14">Linteau L120 (120x19x14)</option>
+                    <option value="linteau_l140_14" data-dims="1.40,0.19,0.14">Linteau L140 (140x19x14)</option>
+                    <option value="linteau_l160_14" data-dims="1.60,0.19,0.14">Linteau L160 (160x19x14)</option>
+                    <option value="linteau_l180_14" data-dims="1.80,0.19,0.14">Linteau L180 (180x19x14)</option>
+                    <option value="linteau_l200_14" data-dims="2.00,0.19,0.14">Linteau L200 (200x19x14)</option>
+                </optgroup>
+                <optgroup label="Isolants">
+                    <option value="isolant_pur5" data-dims="1.20,0.60,0.05">Isolant PUR5 (120x60x5)</option>
+                    <option value="isolant_pur6" data-dims="1.20,0.60,0.06">Isolant PUR6 (120x60x6)</option>
+                    <option value="isolant_pur7" data-dims="1.20,0.60,0.07">Isolant PUR7 (120x60x7)</option>
+                </optgroup>
+                <optgroup label="Autres">
+                    <option value="vide" data-dims="0.40,0.19,0.01" data-depth-range="0.01,0.05">Vide (40x19x1-5)</option>
+                    <option value="profil" data-dims="2.50,0.065,0.065">Profil (250x6.5x6.5)</option>
+                </optgroup>
+                <optgroup label="Personnalisé">
+                    <option value="custom">Élément Personnalisé</option>
+                </optgroup>
+            </select>
+            <div id="custom-dims-container" style="display: none; align-items: center;">
+                <input type="text" id="custom-name" placeholder="Nom" style="width:100px;">
+                <input type="number" id="custom-width" placeholder="L (m)" step="0.01" min="0.01">
+                <input type="number" id="custom-height" placeholder="H (m)" step="0.01" min="0.01">
+                <input type="number" id="custom-depth" placeholder="P (m)" step="0.01" min="0.01">
+            </div>
+             <div id="vide-depth-container" style="display: none; align-items: center;">
+                <label for="vide-depth" style="color:white; margin-right:5px;">Prof. Vide (cm):</label>
+                <input type="number" id="vide-depth" value="1" min="1" max="5" step="0.1">
+            </div>
         </div>
-    </div>
-
-    <div class="main-container">
-        <button class="sidebar-toggle" id="toggle-left-sidebar" title="Basculer barre latérale gauche">&lt;</button>
-        <div class="left-sidebar" id="left-sidebar">
-            <h3 style="color:#1abc9c; margin-top:0;">Outils</h3>
-            <div class="form-group">
-                <label for="custom-width">Largeur personnalisée (cm):</label>
-                <input type="number" id="custom-width" value="20" min="1">
-            </div>
-            <div class="form-group">
-                <label for="custom-height">Hauteur personnalisée (cm):</label>
-                <input type="number" id="custom-height" value="10" min="1">
-            </div>
-            <div class="form-group">
-                <label for="custom-depth">Profondeur personnalisée (cm):</label>
-                <input type="number" id="custom-depth" value="10" min="1">
-            </div>
-            <div class="form-group">
-                <label for="custom-name">Nom personnalisé:</label>
-                <input type="text" id="custom-name" value="Bloc Perso">
-            </div>
-            <button id="btn-add-custom" style="background-color: #1abc9c; color:white; width:100%; padding:10px;">Ajouter élément personnalisé</button>
-
-            <h4 style="color:#1abc9c; margin-top:20px;">Gestion des Assises</h4>
-            <div class="form-group">
-                <label for="assise-level">Niveau d'assise (Y cm):</label>
-                <input type="number" id="assise-level" value="0" step="1">
-            </div>
-            <button id="btn-go-to-assise" style="width:100%; padding:8px;">Aller à l'assise</button>
-            <p style="font-size:0.85em; color:#bdc3c7;">Prochain élément sera placé à cette hauteur Y.</p>
+        <div id="help-bar">
+            Bienvenue ! Utilisez la barre d'outils pour commencer.
         </div>
+    </header>
 
-        <div class="viewport-container">
-            <canvas id="three-canvas"></canvas>
-            <div class="watermark">SimulateurMur3D</div>
-            <div class="dpad-controls">
+    <main>
+        <aside id="left-sidebar">
+            <div class="sidebar-content">
+                 <h3>Outils Supplémentaires</h3>
+                 <p>(Autres outils à venir)</p>
+                 <p>Navigation : Clic gauche + glisser pour orbiter, Clic droit + glisser pour translater, Molette pour zoomer.</p>
+            </div>
+        </aside>
+
+        <div id="viewport-container">
+            <button id="toggle-left-sidebar" title="Basculer Barre Latérale Gauche">&lt;</button>
+            <div id="threejs-canvas"></div> 
+            <div id="watermark">MurSimulateur3D by J.BROHEZ - Copyright © 2025 - v1.0.1</div>
+            <div id="dpad-controls">
+                <button id="dpad-level-up" title="Monter Élément/Assise (PageUp)">⇞</button>
+                <button id="dpad-up" title="Avancer (W ou ↑)">▲</button>
                 <button id="dpad-rot-left" title="Rotation Gauche (Q)">↺</button>
-                <button id="dpad-el-up" title="Élément Haut (PageUp)">Y ▲</button>
+                <button id="dpad-left" title="Gauche (A ou ←)">◀</button>
+                <button id="dpad-confirm" title="Confirmer (Entrée)">OK</button>
+                <button id="dpad-right" title="Droite (D ou →)">▶</button>
+                <button id="dpad-level-down" title="Descendre Élément/Assise (PageDown)">⇟</button>
+                <button id="dpad-down" title="Reculer (S ou ↓)">▼</button>
                 <button id="dpad-rot-right" title="Rotation Droite (E)">↻</button>
-
-                <button id="dpad-el-left" title="Élément Gauche (Flèche gauche)">X ◄</button>
-                <button id="dpad-ok" title="Confirmer (Entrée)">OK</button>
-                <button id="dpad-el-right" title="Élément Droite (Flèche droite)">► X</button>
-
-                <button id="dpad-el-backward" title="Élément Arrière (Flèche bas)">Z ▼</button>
-                <button id="dpad-el-down" title="Élément Bas (PageDown)">Y ▼</button>
-                <button id="dpad-el-forward" title="Élément Avant (Flèche haut)">Z ▲</button>
             </div>
+            <button id="toggle-right-sidebar" title="Basculer Barre Latérale Droite">&gt;</button>
         </div>
 
-        <button class="sidebar-toggle" id="toggle-right-sidebar" title="Basculer barre latérale droite">&gt;</button>
-        <div class="right-sidebar" id="right-sidebar">
-            <h3 style="color:#1abc9c; margin-top:0;">Métadonnées</h3>
-            <div class="form-group">
-                <label for="meta-title">Titre de l'ouvrage:</label>
-                <input type="text" id="meta-title" value="Mon Mur">
-            </div>
-            <div class="form-group">
-                <label for="meta-drafter">Dessinateur:</label>
-                <input type="text" id="meta-drafter" value="Utilisateur">
-            </div>
-            <div class="form-group">
-                <label for="meta-mode">Mode opératoire:</label>
-                <textarea id="meta-mode">Placer les éléments sur la grille.</textarea>
-            </div>
+        <aside id="right-sidebar">
+            <div class="sidebar-content">
+                <h3>Métadonnées</h3>
+                <label for="project-title">Titre de l'ouvrage:</label>
+                <input type="text" id="project-title" name="project-title">
+                <label for="designer-name">Dessinateur:</label>
+                <input type="text" id="designer-name" name="designer-name">
+                <label for="operating-mode">Mode opératoire:</label>
+                <textarea id="operating-mode" name="operating-mode" rows="3"></textarea>
 
-            <div class="element-counter-container">
-                <h4>Compteur d'éléments</h4>
-                <table id="element-counter-table">
+                <h3>Gestion des Assises</h3>
+                <label for="seating-level-selector">Assise Actuelle:</label>
+                <select id="seating-level-selector">
+                    <option value="0" data-y="0">Assise 0 (Niveau 0.00m)</option>
+                </select>
+                <button id="add-new-seating">Créer Nouvelle Assise</button>
+                <button id="remove-current-seating" title="Supprimer Assise Actuelle (si vide)">Suppr. Assise</button>
+
+                <h3>Compteur d'Éléments</h3>
+                <table id="element-counter">
                     <thead>
-                        <tr><th>Type</th><th>Quantité</th></tr>
+                        <tr>
+                            <th>Type</th>
+                            <th>Quantité</th>
+                        </tr>
                     </thead>
                     <tbody>
                         </tbody>
                 </table>
             </div>
-        </div>
-    </div>
+        </aside>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- THREE.JS SETUP ---
+            let scene, camera, renderer, controls, raycaster, mousePointer; 
+            let plane; 
+            let objects = []; 
+            let ghostElement = null; 
+            let selectedObject = null;
+            // Zoom initial plus rapproché
+            const initialCameraPosition = new THREE.Vector3(2, 1.8, 2.5); 
+            const initialCameraLookAt = new THREE.Vector3(0, 0.5, 0);
 
-    <script src="script.js"></script>
+
+            // --- APPLICATION STATE ---
+            let currentTool = 'select'; 
+            const snapGridSize = 0.01; 
+            let currentSeatingIndex = 0;
+            let seatingLevels = { 0: { y: 0, name: "Assise 0 (Niveau 0.00m)" } }; 
+            const defaultSeatingHeightIncrement = 0.20; 
+            let isGhostFixed = false; 
+
+            const elementColors = {
+                brique: 0xCD5C5C,  
+                bloc: 0x87CEEB,    
+                linteau: 0x778899, 
+                isolant: 0xFFE4B5, 
+                vide: 0xADD8E6,    
+                profil: 0xBDB76B,  
+                custom: 0x98FB98,  
+                default: 0xBEBEBE  
+            };
+            let useWhiteElements = false;
+            let shadowsEnabled = true;
+
+            // --- DOM ELEMENTS ---
+            const canvasContainer = document.getElementById('threejs-canvas'); 
+            const viewportContainer = document.getElementById('viewport-container'); 
+            const elementTypeSelector = document.getElementById('element-type-selector');
+            const customDimsContainer = document.getElementById('custom-dims-container');
+            const customNameInput = document.getElementById('custom-name');
+            const customWidthInput = document.getElementById('custom-width');
+            const customHeightInput = document.getElementById('custom-height');
+            const customDepthInput = document.getElementById('custom-depth');
+            const videDepthContainer = document.getElementById('vide-depth-container');
+            const videDepthInput = document.getElementById('vide-depth');
+            const helpBar = document.getElementById('help-bar');
+
+
+            const toolButtons = {
+                select: document.getElementById('select-tool'),
+                add: document.getElementById('add-tool'),
+                move: document.getElementById('move-tool'),
+                duplicate: document.getElementById('duplicate-tool'),
+                rotate: document.getElementById('rotate-tool'),
+                delete: document.getElementById('delete-tool')
+            };
+
+            const dpad = {
+                up: document.getElementById('dpad-up'),
+                down: document.getElementById('dpad-down'),
+                left: document.getElementById('dpad-left'),
+                right: document.getElementById('dpad-right'),
+                confirm: document.getElementById('dpad-confirm'),
+                rotLeft: document.getElementById('dpad-rot-left'),
+                rotRight: document.getElementById('dpad-rot-right'),
+                levelUp: document.getElementById('dpad-level-up'),
+                levelDown: document.getElementById('dpad-level-down')
+            };
+
+            const seatingLevelSelector = document.getElementById('seating-level-selector');
+            const addNewSeatingBtn = document.getElementById('add-new-seating');
+            const removeCurrentSeatingBtn = document.getElementById('remove-current-seating');
+            const elementCounterTableBody = document.getElementById('element-counter').getElementsByTagName('tbody')[0];
+            
+            const toggleLeftSidebarBtn = document.getElementById('toggle-left-sidebar');
+            const toggleRightSidebarBtn = document.getElementById('toggle-right-sidebar');
+            const leftSidebar = document.getElementById('left-sidebar');
+            const rightSidebar = document.getElementById('right-sidebar');
+
+            const newFileBtn = document.getElementById('new-file');
+            const openFileBtn = document.getElementById('open-file');
+            const saveFileBtn = document.getElementById('save-file');
+            const exportPdfBtn = document.getElementById('export-pdf');
+            const editSelectionBtn = document.getElementById('edit-selection'); 
+            const styleWhiteBtn = document.getElementById('style-white');
+            const styleColorBtn = document.getElementById('style-color');
+            const toggleShadowsBtn = document.getElementById('toggle-shadows');
+            const aboutAppBtn = document.getElementById('about-app');
+            const helpGuideBtn = document.getElementById('help-guide');
+
+            // --- INITIALIZATION ---
+            function initThreeJS() {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xADD8E6); // Light blue sky
+
+                camera = new THREE.PerspectiveCamera(50, viewportContainer.clientWidth / viewportContainer.clientHeight, 0.1, 1000);
+                camera.position.copy(initialCameraPosition);
+                camera.lookAt(initialCameraLookAt);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); 
+                renderer.setSize(viewportContainer.clientWidth, viewportContainer.clientHeight);
+                renderer.shadowMap.enabled = shadowsEnabled;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                canvasContainer.appendChild(renderer.domElement); 
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.screenSpacePanning = true; 
+                controls.minDistance = 0.5;
+                controls.maxDistance = 150; 
+                controls.maxPolarAngle = Math.PI / 2 - 0.01; 
+                controls.target.copy(initialCameraLookAt);
+                controls.update();
+
+                console.log("[INIT] controls object:", controls);
+                console.log("[INIT] typeof controls.dollyIn:", typeof controls.dollyIn);
+                console.log("[INIT] typeof controls.pan:", typeof controls.pan);
+                console.log("[INIT] typeof controls.rotateLeft:", typeof controls.rotateLeft);
+
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); 
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); 
+                directionalLight.position.set(15, 20, 10); 
+                directionalLight.castShadow = shadowsEnabled;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 60; 
+                directionalLight.shadow.camera.left = -20;
+                directionalLight.shadow.camera.right = 20;
+                directionalLight.shadow.camera.top = 20;
+                directionalLight.shadow.camera.bottom = -20;
+                scene.add(directionalLight);
+                
+                const planeGeometry = new THREE.PlaneGeometry(100, 100); 
+                const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x90EE90, side: THREE.DoubleSide, roughness: 0.95, metalness: 0.1 }); // Light green ground
+                plane = new THREE.Mesh(planeGeometry, planeMaterial);
+                plane.rotation.x = -Math.PI / 2;
+                plane.receiveShadow = true;
+                plane.name = "GroundPlane";
+                scene.add(plane);
+
+                const gridHelper = new THREE.GridHelper(100, 100, 0xaaaaaa, 0xcccccc); 
+                gridHelper.name = "GridHelper"; 
+                scene.add(gridHelper);
+
+                raycaster = new THREE.Raycaster();
+                mousePointer = new THREE.Vector2();
+
+                window.addEventListener('resize', onWindowResize, false);
+                viewportContainer.addEventListener('pointerdown', onViewportPointerDown, false); 
+                viewportContainer.addEventListener('pointermove', onViewportPointerMove, false);
+                document.addEventListener('keydown', onDocumentKeyDown, false);
+
+                setupUIEventListeners();
+                updateActiveToolButton();
+                updateSeatingSelector();
+                updateCursorStyle();
+                updateHelpBar(); // Initial help message
+
+                animate();
+            }
+
+            // --- UI EVENT LISTENERS ---
+            function setupUIEventListeners() {
+                elementTypeSelector.addEventListener('change', () => {
+                    customDimsContainer.style.display = elementTypeSelector.value === 'custom' ? 'inline-flex' : 'none';
+                    videDepthContainer.style.display = elementTypeSelector.value === 'vide' ? 'inline-flex' : 'none';
+                    if (currentTool === 'add') {
+                        removeGhostElement(); 
+                        isGhostFixed = false; 
+                        createGhostElement(); 
+                    }
+                });
+                videDepthInput.addEventListener('change', () => {
+                    if (ghostElement && ghostElement.userData.type === 'vide') {
+                        const newDepth = parseFloat(videDepthInput.value) / 100; 
+                        const oldHeight = ghostElement.userData.height;
+                        const oldWidth = ghostElement.userData.width;
+                        ghostElement.geometry.dispose(); 
+                        ghostElement.geometry = new THREE.BoxGeometry(oldWidth, oldHeight, newDepth);
+                        ghostElement.userData.depth = newDepth;
+                    }
+                });
+
+                Object.keys(toolButtons).forEach(toolName => {
+                    toolButtons[toolName].addEventListener('click', () => setCurrentTool(toolName));
+                });
+
+                // Add event.stopPropagation() to DPad button handlers
+                dpad.up.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('forward', event); });
+                dpad.down.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('backward', event); });
+                dpad.left.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('left', event); });
+                dpad.right.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('right', event); });
+                dpad.confirm.addEventListener('click', (event) => { event.stopPropagation(); confirmPlacement(); }); 
+                dpad.rotLeft.addEventListener('click', (event) => { event.stopPropagation(); rotateGhostOrSelected('left', event); });
+                dpad.rotRight.addEventListener('click', (event) => { event.stopPropagation(); rotateGhostOrSelected('right', event); });
+                dpad.levelUp.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('up', event); });
+                dpad.levelDown.addEventListener('click', (event) => { event.stopPropagation(); moveGhostOrSelected('down', event); });
+
+
+                addNewSeatingBtn.addEventListener('click', createNewSeatingLevel);
+                removeCurrentSeatingBtn.addEventListener('click', removeCurrentSeatingLevel);
+                seatingLevelSelector.addEventListener('change', (e) => {
+                    currentSeatingIndex = parseInt(e.target.value);
+                    if (ghostElement && !isGhostFixed) { 
+                        ghostElement.position.y = seatingLevels[currentSeatingIndex].y + ghostElement.userData.height / 2;
+                    } else if (selectedObject && currentTool === 'move') {
+                        selectedObject.position.y = seatingLevels[currentSeatingIndex].y + selectedObject.geometry.parameters.height / 2;
+                    }
+                });
+
+                toggleLeftSidebarBtn.addEventListener('click', () => {
+                    leftSidebar.classList.toggle('collapsed');
+                    toggleLeftSidebarBtn.textContent = leftSidebar.classList.contains('collapsed') ? '>' : '<';
+                    if (leftSidebar.classList.contains('collapsed')) {
+                        toggleLeftSidebarBtn.style.left = '0px';
+                    } else {
+                        toggleLeftSidebarBtn.style.left = `${leftSidebar.offsetWidth}px`;
+                    }
+                    onWindowResize(); 
+                });
+                toggleRightSidebarBtn.addEventListener('click', () => {
+                    rightSidebar.classList.toggle('collapsed');
+                    toggleRightSidebarBtn.textContent = rightSidebar.classList.contains('collapsed') ? '<' : '>';
+                     if (rightSidebar.classList.contains('collapsed')) {
+                        toggleRightSidebarBtn.style.right = '0px';
+                    } else {
+                        toggleRightSidebarBtn.style.right = `${rightSidebar.offsetWidth}px`;
+                    }
+                    onWindowResize();
+                });
+                toggleLeftSidebarBtn.style.left = leftSidebar.classList.contains('collapsed') ? '0px' : `${leftSidebar.offsetWidth}px`;
+                toggleRightSidebarBtn.style.right = rightSidebar.classList.contains('collapsed') ? '0px' : `${rightSidebar.offsetWidth}px`;
+
+
+                newFileBtn.addEventListener('click', handleNewFile);
+                openFileBtn.addEventListener('click', handleOpenFile);
+                saveFileBtn.addEventListener('click', handleSaveFile);
+                exportPdfBtn.addEventListener('click', handleExportPDF);
+                editSelectionBtn.addEventListener('click', handleEditSelection); 
+                styleWhiteBtn.addEventListener('click', () => setElementStyle(true));
+                styleColorBtn.addEventListener('click', () => setElementStyle(false));
+                toggleShadowsBtn.addEventListener('click', toggleAllShadows);
+                aboutAppBtn.addEventListener('click', () => alert('MurSimulateur3D\nVersion 1.0.1\nDéveloppé par J.BROHEZ avec Three.js.\nCopyright © 2025 J.BROHEZ\n\nDimensions des éléments: Longueur x Hauteur x Profondeur (Épaisseur du mur)'));
+                helpGuideBtn.addEventListener('click', () => alert('Aide :\n- Barre d\'outils : Sélectionner un outil puis interagir.\n- Ajout : Cliquer sur la grille pour fixer la position initiale du fantôme, ajuster avec le DPad, confirmer avec OK.\n- DPad : Flèches pour déplacer, ↺/↻ pour rotation, ⇞/⇟ pour monter/descendre. Maintenir Maj pour un pas plus grand.\n- Sélection : Cliquer sur un objet pour le sélectionner (il deviendra vert et plus grand).\n- Navigation : Clic gauche souris + glisser pour orbiter, clic droit + glisser pour translater, molette pour zoomer.\n- Raccourcis : S (Select), A (Add), M (Move), Maj+D (Duplicate), R (Rotate), Suppr (Delete), Entrée (Confirm DPad).\n Ctrl+S (Sauvegarder), Ctrl+O (Ouvrir).\n- Barres latérales : Cliquer sur < ou > pour les replier/déplier.'));
+            }
+            
+            function updateCursorStyle() {
+                viewportContainer.classList.remove('crosshair-cursor', 'default-cursor', 'move-cursor');
+                switch (currentTool) {
+                    case 'add':
+                    case 'select':
+                        viewportContainer.classList.add('crosshair-cursor');
+                        break;
+                    case 'move':
+                         viewportContainer.classList.add('move-cursor');
+                        break;
+                    default:
+                        viewportContainer.classList.add('default-cursor');
+                        break;
+                }
+            }
+            
+            function updateHelpBar() {
+                let helpText = "Navigation: Clic gauche + glisser = Orbite | Clic droit + glisser = Pan | Molette = Zoom.";
+                switch (currentTool) {
+                    case 'add':
+                        helpText = isGhostFixed ? 
+                                   "Mode AJOUT: Ajustez avec le DPad, puis confirmez avec 'OK'. (Échap pour annuler/repositionner)" :
+                                   "Mode AJOUT: Cliquez sur la grille pour placer l'élément fantôme.";
+                        break;
+                    case 'select':
+                        helpText = "Mode SÉLECTION: Cliquez sur un élément pour le sélectionner.";
+                        break;
+                    case 'move':
+                        helpText = selectedObject ? "Mode DÉPLACER: Utilisez le DPad pour déplacer l'élément sélectionné. Confirmez avec 'OK'." : "Mode DÉPLACER: Cliquez sur un élément pour le sélectionner et le déplacer.";
+                        break;
+                    case 'rotate':
+                        helpText = selectedObject ? "Mode PIVOTER: Utilisez les boutons de rotation du DPad (↺, ↻). Confirmez avec 'OK'." : "Mode PIVOTER: Cliquez sur un élément pour le sélectionner et le faire pivoter.";
+                        break;
+                    case 'duplicate':
+                        helpText = "Mode DUPLIQUER: Cliquez sur un élément pour le dupliquer. Le duplicata sera sélectionné en mode Déplacer.";
+                        break;
+                    case 'delete':
+                        helpText = "Mode SUPPRIMER: Cliquez sur un élément pour le supprimer.";
+                        break;
+                }
+                helpBar.textContent = helpText;
+            }
+
+
+            // --- TOOL MANAGEMENT ---
+            function setCurrentTool(tool) {
+                currentTool = tool;
+                updateActiveToolButton();
+                updateCursorStyle();
+                updateHelpBar(); 
+
+                if (tool === 'add' || tool === 'select') {
+                    deselectObject(); 
+                }
+
+                if (tool === 'add') {
+                    if (!ghostElement) createGhostElement();
+                    if (ghostElement) ghostElement.visible = true;
+                    controls.enabled = false; 
+                    isGhostFixed = false; 
+                } else {
+                    removeGhostElement(); 
+                    if ((tool === 'move' || tool === 'rotate') && selectedObject) {
+                        controls.enabled = false;
+                    } else {
+                        controls.enabled = true;
+                    }
+                    isGhostFixed = false;
+                }
+                if (controls) controls.update(); 
+                // console.log(`[DEBUG] Tool changed to: ${tool}. OrbitControls enabled: ${controls.enabled}. Selected object: ${selectedObject ? selectedObject.name : 'null'}`);
+            }
+
+
+            function updateActiveToolButton() {
+                Object.values(toolButtons).forEach(btn => btn.classList.remove('tool-active'));
+                if (toolButtons[currentTool]) {
+                    toolButtons[currentTool].classList.add('tool-active');
+                }
+            }
+
+            // --- ELEMENT CREATION & MANAGEMENT ---
+            function getElementProperties() {
+                const selectedOption = elementTypeSelector.options[elementTypeSelector.selectedIndex];
+                const typeKey = selectedOption.value; 
+                const baseType = typeKey.split('_')[0]; 
+                let dims, name, specificDepth;
+
+                if (typeKey === 'custom') {
+                    name = customNameInput.value.trim() || 'Perso';
+                    const w = parseFloat(customWidthInput.value) || 0.2;
+                    const h = parseFloat(customHeightInput.value) || 0.1;
+                    const d = parseFloat(customDepthInput.value) || 0.1;
+                    dims = [w, h, d];
+                } else {
+                    name = selectedOption.textContent.split(' (')[0];
+                    dims = selectedOption.dataset.dims.split(',').map(Number);
+                    if (typeKey === 'vide') {
+                        specificDepth = parseFloat(videDepthInput.value) / 100; 
+                        dims[2] = specificDepth; 
+                    }
+                }
+                return {
+                    type: typeKey, 
+                    baseType: baseType, 
+                    name: name,
+                    width: dims[0],  
+                    height: dims[1], 
+                    depth: dims[2]   
+                };
+            }
+
+            function createGhostElement() {
+                if (ghostElement) scene.remove(ghostElement);
+
+                const props = getElementProperties();
+                const geometry = new THREE.BoxGeometry(props.width, props.height, props.depth);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x00cc00, 
+                    opacity: 0.5,
+                    transparent: true,
+                    wireframe: true,
+                    depthTest: false 
+                });
+                ghostElement = new THREE.Mesh(geometry, material);
+                ghostElement.userData = { ...props, isGhost: true }; 
+                ghostElement.position.set(0, seatingLevels[currentSeatingIndex].y + props.height / 2, 0); 
+                ghostElement.visible = (currentTool === 'add'); 
+                scene.add(ghostElement);
+            }
+
+            function removeGhostElement() {
+                if (ghostElement) {
+                    scene.remove(ghostElement);
+                    if (ghostElement.geometry) ghostElement.geometry.dispose();
+                    if (ghostElement.material) ghostElement.material.dispose();
+                    ghostElement = null;
+                }
+                 isGhostFixed = false; 
+            }
+
+            function addElementAtPosition(position, rotationY, propsFromGhost) {
+                const geometry = new THREE.BoxGeometry(propsFromGhost.width, propsFromGhost.height, propsFromGhost.depth);
+                const baseColorHex = elementColors[propsFromGhost.baseType] || elementColors.default;
+
+                const material = new THREE.MeshStandardMaterial({
+                    color: useWhiteElements ? 0xffffff : baseColorHex,
+                    roughness: 0.7, 
+                    metalness: 0.2,
+                    transparent: propsFromGhost.baseType === 'vide',
+                    opacity: propsFromGhost.baseType === 'vide' ? 0.3 : 1.0, 
+                    name: propsFromGhost.name 
+                });
+
+                const element = new THREE.Mesh(geometry, material);
+                element.castShadow = shadowsEnabled && propsFromGhost.baseType !== 'vide';
+                element.receiveShadow = shadowsEnabled && propsFromGhost.baseType !== 'vide';
+
+                element.position.copy(position);
+                element.rotation.y = rotationY;
+                element.name = propsFromGhost.name; 
+
+                // CRITICAL FIX: Ensure the 'isGhost' property is correctly set for real objects
+                element.userData = {
+                    type: propsFromGhost.type,
+                    baseType: propsFromGhost.baseType,
+                    name: propsFromGhost.name,
+                    width: propsFromGhost.width,
+                    height: propsFromGhost.height,
+                    depth: propsFromGhost.depth,
+                    isGhost: false, // Explicitly set to false for real objects
+                    id: THREE.MathUtils.generateUUID(),
+                    originalColor: baseColorHex, 
+                    seatingIndex: currentSeatingIndex 
+                };
+                
+                // console.log("[ADD ELEMENT] Created real object. Name:", element.name, "userData.isGhost:", element.userData.isGhost);
+
+                // Add edges
+                const edges = new THREE.EdgesGeometry(element.geometry);
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 }); // Linewidth defaults to 1
+                const lineSegments = new THREE.LineSegments(edges, lineMaterial);
+                lineSegments.name = "elementEdges"; // Give edges a name for easier identification if needed
+                element.add(lineSegments); // Add edges as a child of the element
+
+
+                objects.push(element);
+                scene.add(element);
+                updateElementCounter();
+                return element;
+            }
+
+            function confirmPlacement() {
+                if (currentTool === 'add' && ghostElement && ghostElement.visible) {
+                    addElementAtPosition(ghostElement.position.clone(), ghostElement.rotation.y, ghostElement.userData);
+                    isGhostFixed = false; 
+                } else if ((currentTool === 'move' || currentTool === 'rotate') && selectedObject) {
+                    deselectObject(); 
+                    setCurrentTool('select'); 
+                }
+                updateHelpBar();
+            }
+
+            // --- SNAPPING ---
+            function snapToGrid(value) {
+                return Math.round(value / snapGridSize) * snapGridSize;
+            }
+
+            function getSnappedPosition(worldPosition, elementProps) {
+                const currentSeatingY = seatingLevels[currentSeatingIndex].y;
+                const snappedX = snapToGrid(worldPosition.x);
+                const snappedZ = snapToGrid(worldPosition.z);
+                const snappedY = currentSeatingY + elementProps.height / 2;
+                return new THREE.Vector3(snappedX, snappedY, snappedZ);
+            }
+            
+            // --- DPAD AND MOVEMENT/ROTATION ---
+            function moveGhostOrSelected(direction, eventParam) { 
+                const target = (currentTool === 'add' && ghostElement && isGhostFixed) ? ghostElement : 
+                               ((currentTool === 'move' || currentTool === 'rotate') && selectedObject) ? selectedObject : null;
+                if (!target) {
+                    // console.log("[DPAD DEBUG] No target for DPad operation. Tool:", currentTool, "Ghost fixed:", isGhostFixed, "Selected:", selectedObject ? selectedObject.name : 'null');
+                    return;
+                }
+ 
+                const currentEvent = eventParam || window.event; 
+                const useShift = currentEvent ? currentEvent.shiftKey : false;
+
+                const moveAmount = snapGridSize * (useShift ? 10 : 5); 
+                const heightAdjustAmount = snapGridSize * (useShift ? 5 : 2); 
+                
+                let moveDirection = new THREE.Vector3();
+                if (direction === 'forward' || direction === 'backward' || direction === 'left' || direction === 'right') {
+                    const forward = new THREE.Vector3();
+                    camera.getWorldDirection(forward);
+                    forward.y = 0; 
+                    forward.normalize();
+
+                    const rightVec = new THREE.Vector3().crossVectors(camera.up, forward).normalize(); 
+                    
+                    switch (direction) {
+                        case 'forward': moveDirection.copy(forward); break;
+                        case 'backward': moveDirection.copy(forward).negate(); break;
+                        case 'left': moveDirection.copy(rightVec); break; 
+                        case 'right': moveDirection.copy(rightVec).negate(); break; 
+                    }
+                     target.position.addScaledVector(moveDirection, moveAmount);
+                }
+
+                switch (direction) {
+                    case 'up':
+                        target.position.y += heightAdjustAmount;
+                        updateTargetSeatingAfterVerticalMove(target);
+                        break;
+                    case 'down':
+                        target.position.y -= heightAdjustAmount;
+                        const targetSeatingIndex = target.userData.seatingIndex !== undefined ? target.userData.seatingIndex : currentSeatingIndex;
+                        const currentLevelY = seatingLevels[targetSeatingIndex] ? seatingLevels[targetSeatingIndex].y : 0;
+                        const basePosY = currentLevelY + target.userData.height / 2;
+                        target.position.y = Math.max(basePosY, target.position.y); 
+                        updateTargetSeatingAfterVerticalMove(target);
+                        break;
+                }
+
+                target.position.x = snapToGrid(target.position.x);
+                target.position.z = snapToGrid(target.position.z);
+                target.position.y = snapToGrid(target.position.y); 
+
+                if (target === ghostElement && (direction !== 'up' && direction !== 'down')) {
+                    if (isGhostFixed) { 
+                         target.position.y = seatingLevels[currentSeatingIndex].y + target.userData.height / 2;
+                    }
+                }
+            }
+            function updateTargetSeatingAfterVerticalMove(target) {
+            }
+
+            function rotateGhostOrSelected(direction, eventParam) { 
+                const target = (currentTool === 'add' && ghostElement && isGhostFixed) ? ghostElement : 
+                               ((currentTool === 'rotate' || currentTool === 'move') && selectedObject) ? selectedObject : null;
+                if (!target) {
+                     console.log("[DPAD ROTATE DEBUG] No target for DPad rotation. Tool:", currentTool, "Ghost fixed:", isGhostFixed, "Selected:", selectedObject ? selectedObject.name : 'null');
+                    return;
+                }
+                // console.log("[DPAD ROTATE DEBUG] Rotating target:", target.name);
+
+                const currentEvent = eventParam || window.event;
+                const useShift = currentEvent ? currentEvent.shiftKey : false;
+                const rotAmount = Math.PI / (useShift ? 18 : 36); 
+                target.rotation.y += (direction === 'left' ? rotAmount : -rotAmount);
+            }
+
+            // --- SELECTION ---
+            function selectObject(object) {
+                // console.log("[SELECT DEBUG] selectObject called. Object Name:", object ? object.name : 'N/A', "UUID:", object ? object.uuid : 'N/A');
+                // console.log("[SELECT DEBUG] Current selectedObject before new selection:", selectedObject ? selectedObject.name : 'null');
+                // console.log("[SELECT DEBUG] Incoming object.userData.isGhost:", object && object.userData ? object.userData.isGhost : 'userData missing or object null');
+
+                if (selectedObject === object) {
+                    // console.log("[SELECT DEBUG] Object is already selected.");
+                    return; 
+                }
+                deselectObject(); 
+
+                selectedObject = object;
+
+                const cond1 = !!selectedObject;
+                const cond2 = !!(selectedObject && selectedObject.userData);
+                const cond3 = selectedObject && selectedObject.userData ? (selectedObject.userData.isGhost === undefined || selectedObject.userData.isGhost === false) : false;
+                
+                // console.log(`[SELECT DEBUG] Conditions after assignment: exists=${cond1}, hasUserData=${cond2}, isNotGhost=${cond3}`);
+                // console.log(`[SELECT DEBUG] selectedObject.userData.isGhost value after assignment: ${selectedObject && selectedObject.userData ? selectedObject.userData.isGhost : 'userData missing or selectedObject null'}`);
+
+
+                if (cond1 && cond2 && cond3) { 
+                    // console.log("[SELECT DEBUG] Selection condition PASSED. Applying effect to:", selectedObject.name);
+                    selectedObject.userData.originalMaterialParams = {
+                        color: selectedObject.userData.originalColor || selectedObject.material.color.getHex(),
+                        emissive: selectedObject.material.emissive ? selectedObject.material.emissive.getHex() : 0x000000
+                    };
+                    selectedObject.userData.originalScale = selectedObject.scale.clone();
+
+                    selectedObject.material.color.set(0x00ff00); 
+                    selectedObject.material.emissive = new THREE.Color(0x003300); 
+                    selectedObject.material.needsUpdate = true;
+                    selectedObject.scale.multiplyScalar(1.05); 
+                    
+                    if (currentTool === 'move' || currentTool === 'rotate') {
+                        controls.enabled = false; 
+                        // console.log(`[SELECT DEBUG] Tool is ${currentTool}, OrbitControls disabled for DPad.`);
+                    } else { 
+                        controls.enabled = true; 
+                        // console.log(`[SELECT DEBUG] Tool is ${currentTool}, OrbitControls enabled.`);
+                    }
+                } else { 
+                    // console.log("[SELECT DEBUG] Selection condition FAILED. Resetting selectedObject to null.");
+                    selectedObject = null; 
+                    if (currentTool !== 'add') { 
+                        controls.enabled = true;
+                    }
+                }
+                if(controls) controls.update();
+                updateHelpBar();
+            }
+
+            function deselectObject() {
+                if (selectedObject && selectedObject.userData && selectedObject.userData.isGhost !== true) { 
+                    // console.log("[DEBUG] Deselecting object:", selectedObject.name || selectedObject.uuid);
+                    if (selectedObject.userData.originalMaterialParams) {
+                        selectedObject.material.color.setHex(selectedObject.userData.originalMaterialParams.color);
+                        selectedObject.material.emissive.setHex(selectedObject.userData.originalMaterialParams.emissive);
+                        selectedObject.material.needsUpdate = true;
+                        delete selectedObject.userData.originalMaterialParams; 
+                    }
+                    if (selectedObject.userData.originalScale) {
+                        selectedObject.scale.copy(selectedObject.userData.originalScale); 
+                        delete selectedObject.userData.originalScale; 
+                    }
+                }
+                selectedObject = null; 
+
+                if (currentTool !== 'add') { 
+                    controls.enabled = true; 
+                    if(controls) controls.update();
+                }
+                 if (currentTool !== 'add') { 
+                    isGhostFixed = false; 
+                 }
+                 updateHelpBar();
+            }
+
+            // --- EVENT HANDLERS (Pointer, Keyboard, Window) ---
+            function onWindowResize() {
+                const newWidth = viewportContainer.clientWidth;
+                const newHeight = viewportContainer.clientHeight;
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, newHeight);
+
+                toggleLeftSidebarBtn.style.left = leftSidebar.classList.contains('collapsed') ? '0px' : `${leftSidebar.offsetWidth}px`;
+                toggleRightSidebarBtn.style.right = rightSidebar.classList.contains('collapsed') ? '0px' : `${rightSidebar.offsetWidth}px`;
+            }
+
+            function onViewportPointerMove(event) {
+                if (currentTool !== 'add' || !ghostElement || isGhostFixed) return; 
+
+                const rect = viewportContainer.getBoundingClientRect();
+                mousePointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mousePointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(mousePointer, camera);
+                const intersects = raycaster.intersectObject(plane); 
+
+                if (intersects.length > 0) {
+                    const intersectPoint = intersects[0].point;
+                    ghostElement.position.copy(getSnappedPosition(intersectPoint, ghostElement.userData));
+                    if (!ghostElement.visible) ghostElement.visible = true; 
+                }
+            }
+
+
+            function onViewportPointerDown(event) {
+                const dpadContainer = document.getElementById('dpad-controls');
+                if (dpadContainer && dpadContainer.contains(event.target)) {
+                    // console.log("[POINTER DOWN DEBUG] Click on DPad button or its child ignored by viewport listener.");
+                    return; // Ignore clicks originating from the DPad itself
+                }
+
+                if (event.button !== 0) return; 
+                
+                const rect = viewportContainer.getBoundingClientRect();
+                mousePointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mousePointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                                
+                raycaster.setFromCamera(mousePointer, camera);
+
+                if (currentTool === 'add') {
+                    if (ghostElement && !isGhostFixed) {
+                        isGhostFixed = true; 
+                        updateHelpBar();
+                    }
+                } else if (currentTool === 'select' || currentTool === 'move' || currentTool === 'duplicate' || currentTool === 'rotate' || currentTool === 'delete') {
+                    const intersectsObjects = raycaster.intersectObjects(objects, false); 
+                    // console.log(`[POINTER DOWN DEBUG] Tool: ${currentTool}. Intersections: ${intersectsObjects.length}`);
+
+                    if (intersectsObjects.length > 0) {
+                        const clickedObject = intersectsObjects[0].object;
+                        // console.log("[POINTER DOWN DEBUG] Clicked Object - Name:", clickedObject.name, "UUID:", clickedObject.uuid);
+                        // console.log("[POINTER DOWN DEBUG] Clicked object userData:", JSON.stringify(clickedObject.userData)); 
+                        // console.log("[POINTER DOWN DEBUG] Clicked object userData.isGhost directly:", clickedObject.userData.isGhost);
+
+
+                        if (clickedObject === plane || clickedObject.name === "GridHelper") { 
+                            // console.log("[POINTER DOWN DEBUG] Clicked on plane or grid, deselecting.");
+                            deselectObject(); 
+                            return;
+                        }
+
+                        if (currentTool === 'select') {
+                            selectObject(clickedObject);
+                        } else if (currentTool === 'move' || currentTool === 'rotate') {
+                            selectObject(clickedObject); 
+                        } else if (currentTool === 'duplicate') {
+                            duplicateObject(clickedObject);
+                        } else if (currentTool === 'delete') {
+                            deleteObject(clickedObject);
+                        }
+                    } else {
+                        // console.log("[POINTER DOWN DEBUG] Clicked on empty space (no intersect), deselecting.");
+                        deselectObject(); 
+                    }
+                }
+            }
+
+            function onDocumentKeyDown(event) {
+                if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT')) {
+                    if (event.key === 'Escape') document.activeElement.blur(); 
+                    return;
+                }
+
+                let dpadAction = true; 
+                switch (event.key.toLowerCase()) {
+                    case 's':
+                        if (event.ctrlKey || event.metaKey) { event.preventDefault(); handleSaveFile(); }
+                        else if (!event.shiftKey) { setCurrentTool('select'); } 
+                        else { dpadAction = false; } 
+                        break;
+                    case 'a': if (!event.ctrlKey && !event.metaKey && !event.altKey) setCurrentTool('add'); else dpadAction = false; break;
+                    case 'm': setCurrentTool('move'); break;
+                    case 'd': 
+                        if (event.shiftKey) { setCurrentTool('duplicate'); } 
+                        else { dpadAction = false; } 
+                        break; 
+                    case 'r': setCurrentTool('rotate'); break;
+                    case 'delete':
+                    case 'backspace':
+                        if (selectedObject) deleteObject(selectedObject);
+                        else setCurrentTool('delete'); 
+                        break;
+                    case 'enter':
+                        if ((currentTool === 'add' && ghostElement && ghostElement.visible && isGhostFixed) || 
+                            ((currentTool === 'move' || currentTool === 'rotate') && selectedObject)) {
+                            confirmPlacement();
+                        }
+                        break;
+                    case 'escape':
+                        if (currentTool === 'add' && ghostElement) {
+                            if (isGhostFixed) {
+                                isGhostFixed = false; 
+                                if (ghostElement) ghostElement.visible = true; 
+                                updateHelpBar();
+                            } else {
+                                removeGhostElement(); 
+                                setCurrentTool('select'); 
+                            }
+                        } else if (selectedObject) {
+                            deselectObject();
+                        }
+                        break;
+
+                    case 'w': case 'arrowup': moveGhostOrSelected('forward', event); break;
+                    case 'x': case 'arrowdown': moveGhostOrSelected('backward', event); break; 
+                    case 'j': case 'arrowleft': moveGhostOrSelected('left', event); break;
+                    case 'l': case 'arrowright': moveGhostOrSelected('right', event); break;
+
+                    case 'q': rotateGhostOrSelected('left', event); break;
+                    case 'e': rotateGhostOrSelected('right', event); break;
+                    case 'pageup': moveGhostOrSelected('up', event); break;
+                    case 'pagedown': moveGhostOrSelected('down', event); break;
+
+                    case 'o': 
+                        if (event.ctrlKey || event.metaKey) { event.preventDefault(); handleOpenFile(); }
+                        else { dpadAction = false; }
+                        break;
+                    default: dpadAction = false; break;
+                }
+                if (dpadAction) event.preventDefault(); 
+            }
+
+            // --- ACTIONS (Duplicate, Delete) ---
+            function duplicateObject(objectToDuplicate) {
+                const sourceObject = objectToDuplicate || selectedObject; 
+                if (!sourceObject) {
+                    console.log("[DEBUG] Duplicate: No source object.");
+                     return;
+                }
+                console.log("[DEBUG] Duplicating object:", sourceObject.name);
+
+                const props = sourceObject.userData;
+                const offset = new THREE.Vector3(props.width * 1.05, 0, 0); 
+                const newPosition = sourceObject.position.clone().add(offset);
+                
+                const originalSeatingIndex = currentSeatingIndex;
+                currentSeatingIndex = sourceObject.userData.seatingIndex !== undefined ? sourceObject.userData.seatingIndex : currentSeatingIndex;
+                const snappedNewPos = getSnappedPosition(newPosition, props); 
+                currentSeatingIndex = originalSeatingIndex; 
+
+                const newElement = addElementAtPosition(snappedNewPos, sourceObject.rotation.y, props);
+                deselectObject(); 
+                selectObject(newElement); 
+                setCurrentTool('move'); 
+            }
+
+            function deleteObject(objectToDelete) {
+                const target = objectToDelete || selectedObject; 
+                if (!target || target === plane || target === ghostElement) {
+                    console.log("[DEBUG] Delete: No valid target or target is plane/ghost.");
+                    return;
+                }
+                console.log("[DEBUG] Deleting object:", target.name || target.uuid);
+
+                // Remove edges first if they are children
+                target.traverse((child) => {
+                    if (child.isLineSegments && child.name === "elementEdges") {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(m => m.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                        // child is automatically removed from parent when parent is removed from scene
+                    }
+                });
+
+                scene.remove(target);
+                const index = objects.indexOf(target);
+                if (index > -1) {
+                    objects.splice(index, 1);
+                }
+                if (target.geometry) target.geometry.dispose();
+                if (target.material) {
+                    if (Array.isArray(target.material)) {
+                        target.material.forEach(m => m.dispose());
+                    } else {
+                        target.material.dispose();
+                    }
+                }
+                if (selectedObject === target) { 
+                    deselectObject(); 
+                }
+                updateElementCounter();
+            }
+
+            // --- SEATING MANAGEMENT ---
+            function createNewSeatingLevel() {
+                const newIndex = Object.keys(seatingLevels).length > 0 ? Math.max(...Object.keys(seatingLevels).map(Number)) + 1 : 0;
+                let newY = 0;
+                let highestPoint = -Infinity;
+                let hasObjects = objects.length > 0;
+
+                if (hasObjects) {
+                    objects.forEach(obj => {
+                        const topOfObject = obj.position.y + obj.userData.height / 2;
+                        if (topOfObject > highestPoint) {
+                            highestPoint = topOfObject;
+                        }
+                    });
+                    newY = snapToGrid(highestPoint);
+                     if (Object.keys(seatingLevels).length > 0) {
+                        const lastSeatingKey = Object.keys(seatingLevels).sort((a,b) => seatingLevels[a].y - seatingLevels[b].y).pop();
+                        if (newY <= seatingLevels[lastSeatingKey].y) {
+                            newY = seatingLevels[lastSeatingKey].y + defaultSeatingHeightIncrement;
+                        }
+                    } else { 
+                         newY = snapToGrid(highestPoint > 0 ? highestPoint : defaultSeatingHeightIncrement);
+                    }
+                } else if (Object.keys(seatingLevels).length > 0) {
+                    const lastSeatingKey = Object.keys(seatingLevels).sort((a,b) => seatingLevels[a].y - seatingLevels[b].y).pop();
+                    newY = seatingLevels[lastSeatingKey].y + defaultSeatingHeightIncrement;
+                } else { 
+                    newY = defaultSeatingHeightIncrement; 
+                }
+                newY = snapToGrid(newY); 
+
+                const newName = `Assise ${newIndex} (Niveau ${newY.toFixed(2)}m)`;
+                seatingLevels[newIndex] = { y: newY, name: newName };
+
+                updateSeatingSelector();
+                currentSeatingIndex = newIndex; 
+                seatingLevelSelector.value = newIndex; 
+
+                if (currentTool === 'add' && ghostElement) {
+                    ghostElement.position.y = newY + ghostElement.userData.height / 2;
+                }
+            }
+            function removeCurrentSeatingLevel() {
+                const levelToRemove = parseInt(seatingLevelSelector.value); 
+                const numLevels = Object.keys(seatingLevels).length;
+
+                if (levelToRemove === 0 && numLevels === 1) {
+                    alert("Impossible de supprimer la première assise (Assise 0).");
+                    return;
+                }
+                
+                const objectsOnThisLevel = objects.filter(obj => obj.userData.seatingIndex === levelToRemove);
+                if (objectsOnThisLevel.length > 0) {
+                    alert("Impossible de supprimer une assise qui contient des éléments. Supprimez d'abord les éléments de cette assise.");
+                    return;
+                }
+
+                let isHighest = true;
+                const levelYToRemove = seatingLevels[levelToRemove].y;
+                for (const key in seatingLevels) {
+                    if (seatingLevels[key].y > levelYToRemove) {
+                        isHighest = false;
+                        break;
+                    }
+                }
+
+                if (!isHighest && numLevels > 1 && levelToRemove !==0) { 
+                     alert("Pour l'instant, seule la dernière assise (la plus haute) vide peut être supprimée, ou l'assise 0 si elle est vide et qu'il en existe d'autres.");
+                     return;
+                 }
+
+                delete seatingLevels[levelToRemove];
+                
+                const remainingIndices = Object.keys(seatingLevels).map(Number).sort((a,b) => seatingLevels[a].y - seatingLevels[b].y);
+                if (remainingIndices.length === 0) { 
+                    seatingLevels[0] = { y: 0, name: "Assise 0 (Niveau 0.00m)" }; 
+                    currentSeatingIndex = 0;
+                } else {
+                    let newSelection = -1;
+                    for (let i = remainingIndices.length - 1; i >= 0; i--) {
+                        if (seatingLevels[remainingIndices[i]].y < levelYToRemove) {
+                            newSelection = remainingIndices[i];
+                            break;
+                        }
+                    }
+                    if (newSelection === -1) { 
+                        newSelection = remainingIndices[0];
+                    }
+                    currentSeatingIndex = newSelection;
+                }
+
+                updateSeatingSelector();
+                seatingLevelSelector.value = currentSeatingIndex;
+            }
+
+
+            function updateSeatingSelector() {
+                seatingLevelSelector.innerHTML = '';
+                const sortedKeys = Object.keys(seatingLevels).sort((a,b) => seatingLevels[a].y - seatingLevels[b].y);
+                
+                sortedKeys.forEach(key => { 
+                    const option = document.createElement('option');
+                    option.value = key; 
+                    option.textContent = seatingLevels[key].name;
+                    option.dataset.y = seatingLevels[key].y;
+                    seatingLevelSelector.appendChild(option);
+                });
+                if (seatingLevels[currentSeatingIndex]) {
+                    seatingLevelSelector.value = currentSeatingIndex;
+                } else if (sortedKeys.length > 0) {
+                    currentSeatingIndex = parseInt(sortedKeys[0]); 
+                    seatingLevelSelector.value = currentSeatingIndex;
+                }
+            }
+
+            // --- ELEMENT COUNTER ---
+            function updateElementCounter() {
+                const counts = {};
+                objects.forEach(obj => {
+                    const name = obj.userData.name || 'Inconnu';
+                    counts[name] = (counts[name] || 0) + 1;
+                });
+
+                elementCounterTableBody.innerHTML = '';
+                for (const name in counts) {
+                    const row = elementCounterTableBody.insertRow();
+                    row.insertCell().textContent = name;
+                    row.insertCell().textContent = counts[name];
+                }
+            }
+
+            // --- MENU FUNCTIONS (File, Style, Edit) ---
+            function handleNewFile() {
+                if (!confirm("Créer un nouveau fichier ? Les modifications non sauvegardées seront perdues.")) return;
+                objects.slice().forEach(obj => deleteObject(obj)); 
+                objects = []; 
+
+                seatingLevels = { 0: { y: 0, name: "Assise 0 (Niveau 0.00m)" } };
+                currentSeatingIndex = 0;
+                updateSeatingSelector();
+                updateElementCounter(); 
+                document.getElementById('project-title').value = '';
+                document.getElementById('designer-name').value = '';
+                document.getElementById('operating-mode').value = '';
+                if (currentTool === 'add') {
+                    removeGhostElement(); 
+                    createGhostElement(); 
+                }
+                setCurrentTool('select');
+                if (controls) { 
+                    camera.position.copy(initialCameraPosition);
+                    controls.target.copy(initialCameraLookAt);
+                    controls.update();
+                }
+            }
+
+            function handleOpenFile() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json,application/json';
+                input.onchange = e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = event => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            loadSceneData(data);
+                        } catch (error) {
+                            console.error("Erreur de chargement du fichier:", error);
+                            alert('Erreur de chargement du fichier : ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            }
+
+            function loadSceneData(data) {
+                if (!confirm("Charger ce fichier va remplacer la scène actuelle. Continuer ?")) return;
+                
+                objects.slice().forEach(obj => deleteObject(obj));
+                objects = [];
+                seatingLevels = { 0: { y: 0, name: "Assise 0 (Niveau 0.00m)" } }; 
+                currentSeatingIndex = 0;
+                document.getElementById('project-title').value = '';
+                document.getElementById('designer-name').value = '';
+                document.getElementById('operating-mode').value = '';
+
+                if (data.metadata) {
+                    document.getElementById('project-title').value = data.metadata.projectTitle || '';
+                    document.getElementById('designer-name').value = data.metadata.designerName || '';
+                    document.getElementById('operating-mode').value = data.metadata.operatingMode || '';
+                }
+
+                if (data.seatingLevels && Object.keys(data.seatingLevels).length > 0) {
+                    seatingLevels = data.seatingLevels;
+                } else {
+                    seatingLevels = { 0: { y: 0, name: "Assise 0 (Niveau 0.00m)" } }; 
+                }
+                currentSeatingIndex = data.currentSeatingIndex !== undefined && seatingLevels[data.currentSeatingIndex] ? data.currentSeatingIndex : 0;
+                if (!seatingLevels[currentSeatingIndex] && Object.keys(seatingLevels).length > 0) { 
+                    currentSeatingIndex = parseInt(Object.keys(seatingLevels)[0]); 
+                }
+                updateSeatingSelector(); 
+
+                if (data.styleSettings) {
+                    useWhiteElements = data.styleSettings.useWhiteElements || false;
+                    shadowsEnabled = data.styleSettings.shadowsEnabled !== undefined ? data.styleSettings.shadowsEnabled : true;
+                } else { 
+                    useWhiteElements = false;
+                    shadowsEnabled = true;
+                }
+                renderer.shadowMap.enabled = shadowsEnabled;
+                scene.traverse(child => {
+                    if (child.isLight) child.castShadow = shadowsEnabled;
+                });
+                toggleShadowsBtn.textContent = shadowsEnabled ? "Désactiver Ombres" : "Activer Ombres";
+
+
+                if (data.objects) {
+                    data.objects.forEach(objData => {
+                        const props = {
+                            type: objData.type,
+                            baseType: objData.baseType,
+                            name: objData.name,
+                            width: objData.width,
+                            height: objData.height,
+                            depth: objData.depth,
+                        };
+                        const position = new THREE.Vector3(objData.position.x, objData.position.y, objData.position.z);
+                        const rotationY = objData.rotationY; 
+                        
+                        const savedSeatingIndex = currentSeatingIndex;
+                        currentSeatingIndex = objData.seatingIndex !== undefined && seatingLevels[objData.seatingIndex] ? objData.seatingIndex : 0; 
+                        if (!seatingLevels[currentSeatingIndex]) currentSeatingIndex = 0; 
+
+                        const loadedElement = addElementAtPosition(position, rotationY, props);
+                        
+                        if (objData.originalColor) loadedElement.userData.originalColor = objData.originalColor;
+
+                        if (useWhiteElements) {
+                            loadedElement.material.color.set(0xffffff);
+                        } else {
+                            loadedElement.material.color.set(loadedElement.userData.originalColor || elementColors[props.baseType] || elementColors.default);
+                        }
+                        loadedElement.castShadow = shadowsEnabled && props.baseType !== 'vide';
+                        loadedElement.receiveShadow = shadowsEnabled && props.baseType !== 'vide';
+                        
+                        currentSeatingIndex = savedSeatingIndex; 
+                    });
+                }
+                updateElementCounter();
+                if (currentTool === 'add') { 
+                     removeGhostElement(); createGhostElement();
+                }
+                setCurrentTool('select'); 
+                if (seatingLevels[currentSeatingIndex]) { 
+                     seatingLevelSelector.value = currentSeatingIndex;
+                }
+                if (controls) { 
+                    camera.position.copy(initialCameraPosition);
+                    controls.target.copy(initialCameraLookAt);
+                    controls.update();
+                }
+            }
+
+
+            function handleSaveFile() {
+                const sceneData = {
+                    metadata: {
+                        projectTitle: document.getElementById('project-title').value,
+                        designerName: document.getElementById('designer-name').value,
+                        operatingMode: document.getElementById('operating-mode').value,
+                    },
+                    objects: objects.map(obj => ({
+                        type: obj.userData.type,
+                        baseType: obj.userData.baseType,
+                        name: obj.userData.name,
+                        width: obj.userData.width,
+                        height: obj.userData.height,
+                        depth: obj.userData.depth,
+                        position: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
+                        rotationY: obj.rotation.y,
+                        originalColor: obj.userData.originalColor, 
+                        seatingIndex: obj.userData.seatingIndex
+                    })),
+                    seatingLevels: seatingLevels,
+                    currentSeatingIndex: currentSeatingIndex,
+                    styleSettings: {
+                        useWhiteElements: useWhiteElements,
+                        shadowsEnabled: shadowsEnabled
+                    }
+                };
+
+                const filenameBase = sceneData.metadata.projectTitle || "simulation_mur_3d";
+                const filename = filenameBase.replace(/[^a-z0-9]/gi, '_').toLowerCase() + ".json";
+                const blob = new Blob([JSON.stringify(sceneData, null, 2)], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link); 
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            }
+
+            async function handleExportPDF() {
+                if (typeof jsPDF === 'undefined' && typeof window.jspdf.jsPDF === 'undefined') {
+                    alert("La librairie jsPDF n'a pas pu être chargée. L'export PDF est indisponible.");
+                    return;
+                }
+                const { jsPDF: JSPDF_LIB } = window.jspdf; 
+                if (!JSPDF_LIB) {
+                     alert("Erreur interne avec jsPDF. L'export PDF est indisponible.");
+                    return;
+                }
+
+                const pdf = new JSPDF_LIB({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                const pdfTitle = document.getElementById('project-title').value || "Simulation de Mur 3D";
+                const designer = document.getElementById('designer-name').value || "N/A";
+                const date = new Date().toLocaleDateString('fr-FR');
+
+                const originalCameraState = {
+                    position: camera.position.clone(),
+                    rotation: camera.rotation.clone(), 
+                    fov: camera.fov,
+                    aspect: camera.aspect,
+                    near: camera.near,
+                    far: camera.far,
+                    zoom: camera.zoom,
+                    target: controls.target.clone()
+                };
+                
+                const gridHelperObj = scene.getObjectByName("GridHelper"); 
+                const dLightHelper = scene.getObjectByName("DirectionalLightHelper"); 
+                const dLightShadowHelper = scene.getObjectByName("CameraHelper"); 
+                if (gridHelperObj) gridHelperObj.visible = false;
+                if (dLightHelper) dLightHelper.visible = false;
+                if (dLightShadowHelper) dLightShadowHelper.visible = false;
+                
+                const ghostWasVisible = ghostElement ? ghostElement.visible : false;
+                if (ghostElement) ghostElement.visible = false;
+                
+                const previouslySelected = selectedObject; 
+                deselectObject(); 
+
+                renderer.setPixelRatio(2); 
+
+                const views = [ 
+                    { name: "Perspective", pos: [6, 4, 6], target: [0, 0.5, 0], isPerspective: true },
+                    { name: "Face (Avant Z+)", pos: [0, 1.5, 8], target: [0, 1, 0], isPerspective: false },
+                    { name: "Arrière (Z-)", pos: [0, 1.5, -8], target: [0, 1, 0], isPerspective: false },
+                    { name: "Gauche (X-)", pos: [-8, 1.5, 0], target: [0, 1, 0], isPerspective: false },
+                    { name: "Droite (X+)", pos: [8, 1.5, 0], target: [0, 1, 0], isPerspective: false },
+                    { name: "Dessus (Y+)", pos: [0, 8, 0.01], target: [0, 0, 0], isPerspective: false },
+                ];
+
+                const margin = 10; 
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const headerHeight = 30; 
+                const availableWidth = pageWidth - 2 * margin;
+                const availableHeight = pageHeight - headerHeight - 2 * margin;
+                
+                const imgWidth = (availableWidth - margin) / 2; 
+                const imgHeight = availableHeight * 0.75; 
+
+                let viewCount = 0;
+                for (let i = 0; i < views.length; i++) {
+                    if (viewCount % 2 === 0 && viewCount > 0) { 
+                        pdf.addPage();
+                    }
+                    if (viewCount % 2 === 0) { 
+                        pdf.setFontSize(16);
+                        pdf.text(pdfTitle, margin, margin + 5);
+                        pdf.setFontSize(10);
+                        pdf.text(`Dessinateur: ${designer}`, margin, margin + 12);
+                        pdf.text(`Date: ${date}`, margin, margin + 17);
+                        pdf.text(`Page ${Math.floor(viewCount / 2) + 1}`, pageWidth - margin -15, margin + 5);
+                        pdf.text("SimulateurDeMur3D", pageWidth - margin, pageHeight - 5, { align: 'right' });
+                    }
+
+                    const view = views[i];
+                    camera.position.set(view.pos[0], view.pos[1], view.pos[2]);
+                    controls.target.set(view.target[0], view.target[1], view.target[2]);
+                    
+                    if (!view.isPerspective) {
+                        const distance = camera.position.distanceTo(controls.target);
+                        const desiredVisibleHeight = 5; 
+                        camera.fov = 2 * Math.atan( (desiredVisibleHeight / 2) / distance ) * (180 / Math.PI);
+                        camera.fov = Math.max(5, Math.min(camera.fov, 30)); 
+                    } else {
+                        camera.fov = originalCameraState.fov; 
+                    }
+                    camera.updateProjectionMatrix();
+                    controls.update(); 
+
+                    renderer.render(scene, camera);
+                    const imgData = renderer.domElement.toDataURL('image/png');
+
+                    const xPos = margin + (viewCount % 2) * (imgWidth + margin);
+                    const yPos = headerHeight;
+
+                    pdf.setFontSize(9);
+                    pdf.text(view.name, xPos, yPos + 5);
+                    pdf.addImage(imgData, 'PNG', xPos, yPos + 8, imgWidth, imgHeight);
+                    viewCount++;
+                }
+
+                camera.position.copy(originalCameraState.position);
+                camera.rotation.copy(originalCameraState.rotation);
+                camera.fov = originalCameraState.fov;
+                camera.aspect = originalCameraState.aspect;
+                camera.near = originalCameraState.near;
+                camera.far = originalCameraState.far;
+                camera.zoom = originalCameraState.zoom;
+                controls.target.copy(originalCameraState.target);
+                camera.updateProjectionMatrix();
+                controls.update();
+
+                if (gridHelperObj) gridHelperObj.visible = true;
+                if (dLightHelper) dLightHelper.visible = true;
+                if (dLightShadowHelper) dLightShadowHelper.visible = true;
+                if (ghostElement && ghostWasVisible) ghostElement.visible = true;
+                if (previouslySelected) selectObject(previouslySelected); 
+
+                renderer.setPixelRatio(window.devicePixelRatio); 
+
+                pdf.save(pdfTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() + "_vues.pdf");
+            }
+
+
+            function handleEditSelection() {
+                if (!selectedObject) {
+                    alert("Aucun élément sélectionné à modifier.");
+                    return;
+                }
+                
+                elementTypeSelector.value = selectedObject.userData.type;
+                elementTypeSelector.dispatchEvent(new Event('change')); 
+
+                if (selectedObject.userData.type === 'custom') {
+                    customNameInput.value = selectedObject.userData.name;
+                    customWidthInput.value = selectedObject.userData.width;
+                    customHeightInput.value = selectedObject.userData.height;
+                    customDepthInput.value = selectedObject.userData.depth;
+                } else if (selectedObject.userData.type === 'vide') {
+                    videDepthInput.value = selectedObject.userData.depth * 100; 
+                }
+
+                const oldPosition = selectedObject.position.clone();
+                const oldRotationY = selectedObject.rotation.y;
+                const oldSeatingIndex = selectedObject.userData.seatingIndex;
+                deleteObject(selectedObject); 
+
+                setCurrentTool('add'); 
+                if (ghostElement) {
+                    const newProps = getElementProperties(); 
+                    ghostElement.geometry.dispose();
+                    ghostElement.geometry = new THREE.BoxGeometry(newProps.width, newProps.height, newProps.depth);
+                    ghostElement.userData = {...newProps, isGhost: true};
+
+                    ghostElement.position.copy(oldPosition);
+                    ghostElement.rotation.y = oldRotationY;
+                    
+                    currentSeatingIndex = oldSeatingIndex; 
+                    seatingLevelSelector.value = currentSeatingIndex; 
+                    const currentLevelY = seatingLevels[currentSeatingIndex] ? seatingLevels[currentSeatingIndex].y : 0;
+                    ghostElement.position.y = currentLevelY + newProps.height / 2; 
+                    
+                    ghostElement.visible = true;
+                    isGhostFixed = true; 
+                }
+                alert("Modifiez les propriétés dans la barre d'outils si nécessaire, puis ajustez la position avec le DPad et confirmez avec 'OK' ou 'Entrée'.");
+            }
+
+
+            function setElementStyle(isWhite) {
+                useWhiteElements = isWhite;
+                objects.forEach(obj => {
+                    if (obj.material && obj.userData.originalColor) { 
+                        obj.material.color.set(useWhiteElements ? 0xffffff : obj.userData.originalColor);
+                        obj.material.needsUpdate = true;
+                    }
+                });
+            }
+
+            function toggleAllShadows() {
+                shadowsEnabled = !shadowsEnabled;
+                renderer.shadowMap.enabled = shadowsEnabled;
+
+                scene.traverse(child => {
+                    if (child.isLight && child.castShadow !== undefined) {
+                        child.castShadow = shadowsEnabled;
+                    }
+                    if (child.isMesh && child !== plane && child !== ghostElement) {
+                        child.castShadow = shadowsEnabled && child.userData.baseType !== 'vide';
+                        child.receiveShadow = shadowsEnabled && child.userData.baseType !== 'vide';
+                        if (child.material) child.material.needsUpdate = true; 
+                    }
+                });
+                if (plane.material) plane.material.needsUpdate = true;
+                toggleShadowsBtn.textContent = shadowsEnabled ? "Désactiver Ombres" : "Activer Ombres";
+            }
+
+            // --- ANIMATION LOOP ---
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update(); 
+                renderer.render(scene, camera);
+            }
+
+            // --- START APPLICATION ---
+            initThreeJS();
+            console.log("Simulateur de murs initialisé. Version avec débogage v5 (correctif isGhost et DPad).");
+        });
+    </script>
 </body>
 </html>
